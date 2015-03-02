@@ -17,3 +17,9 @@ Similar to lenses ([1](http://eed3si9n.com/learning-scalaz/Lens.html),
 [2](https://github.com/julien-truffaut/Monocle)), but without the actual lens creation.
 
 Read [the blog](http://www.warski.org/blog/2015/02/quicklens-modify-deeply-nested-case-class-fields/) for more info.
+
+Available in Maven Central:
+
+````scala
+val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.0"
+````
