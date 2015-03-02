@@ -1,6 +1,8 @@
 Quicklens
 =========
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11)
+
 Modify deeply nested fields in case classes, e.g.:
 
 ````scala
