@@ -6,7 +6,7 @@ Quicklens
 Modify deeply nested fields in case classes, e.g.:
 
 ````scala
-import com.softwaremill.quicklens.modify
+import com.softwaremill.quicklens._
 
 case class Street(name: String)
 case class Address(street: Street)
