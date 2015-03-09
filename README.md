@@ -53,5 +53,5 @@ Read [the blog](http://www.warski.org/blog/2015/02/quicklens-modify-deeply-neste
 Available in Maven Central:
 
 ````scala
-val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.1"
+val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.2"
 ````
