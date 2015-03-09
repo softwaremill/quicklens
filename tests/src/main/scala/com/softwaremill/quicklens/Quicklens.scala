@@ -12,4 +12,15 @@ object Quicklens extends App {
   //
 
   println(modify(person)(_.address.street.name).using(changeName))
+
+  //
+
+  val modifyPA = modify(_: Person)(_.address)
+  modifyPA(person).using(identity)
+
+  //
+
+  val modifyASt = modify(_: Address)(_.street.name)
+
+  println((modifyPA andThenModify modifyASt)(person).using(changeName))
 }

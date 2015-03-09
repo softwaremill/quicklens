@@ -26,7 +26,7 @@ object QuicklensMacros {
 
     val rootPathElParamTree = ValDef(Modifiers(), rootPathEl, TypeTree(), EmptyTree)
     val fnParamTree = ValDef(Modifiers(), fn, TypeTree(), EmptyTree)
-    q"new com.softwaremill.quicklens.PathModify($obj, ($rootPathElParamTree, $fnParamTree) => $copies)"
+    q"com.softwaremill.quicklens.PathModify($obj, ($rootPathElParamTree, $fnParamTree) => $copies)"
   }
 
   /**
