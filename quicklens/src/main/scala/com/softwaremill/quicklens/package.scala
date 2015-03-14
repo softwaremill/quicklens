@@ -3,10 +3,24 @@ package com.softwaremill
 import scala.language.experimental.macros
 
 package object quicklens {
+  /**
+   * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
+   * via `path` on the given `obj`.
+   *
+   * All modifications are side-effect free and create copies of the original objects.
+   */
   def modify[T, U](obj: T)(path: T => U): PathModify[T, U] = macro QuicklensMacros.modify_impl[T, U]
 
   case class PathModify[T, U](obj: T, doModify: (T, U => U) => T) {
+    /**
+     * Transform the value of the field using the given function.
+     * @return A copy of the root object with the (deeply nested) field modified.
+     */
     def using(mod: U => U): T = doModify(obj, mod)
+    /**
+     * Set the value of the field to a new value.
+     * @return A copy of the root object with the (deeply nested) field set to the new value.
+     */
     def setTo(v: U): T = doModify(obj, _ => v)
   }
 
