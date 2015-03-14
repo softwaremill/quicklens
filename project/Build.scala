@@ -5,7 +5,7 @@ object BuildSettings {
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     organization  := "com.softwaremill.quicklens",
     version       := "1.3-SNAPSHOT",
-    scalaVersion  := "2.11.5",
+    scalaVersion  := "2.11.6",
     // Sonatype OSS deployment
     publishTo <<= version { (v: String) =>
       val nexus = "https://oss.sonatype.org/"
