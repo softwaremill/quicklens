@@ -3,7 +3,7 @@ Quicklens
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11)
 
-### Modify deeply nested fields in case classes:
+#### Modify deeply nested fields in case classes:
 
 ````scala
 import com.softwaremill.quicklens._
@@ -18,7 +18,7 @@ val p2 = modify(person)(_.address.street.name).using(_.toUpperCase)
 val p3 = modify(person)(_.address.street.name).setTo("3 OO Ln.")
 ````
 
-### Traverse options/lists using .each:
+#### Traverse options/lists using .each:
 
 ````scala
 import com.softwaremill.quicklens._
@@ -39,7 +39,7 @@ val p2 = modify(person)(_.address.each.street.each.name).using(_.toUpperCase)
 You can add support for your own containers by providing an implicit `QuicklensFunctor[C]` with the appropriate
 `C` type parameter.
 
-### Re-usable modifications (lenses):
+#### Re-usable modifications (lenses):
 
 ````scala
 import com.softwaremill.quicklens._
@@ -56,7 +56,7 @@ val upperCaseStreetName = modify(_: Person)(_.address.street.name).using(_.toUpp
 val p5 = upperCaseStreetName(person)
 ````
 
-### Composing lenses:
+#### Composing lenses:
 
 ````scala
 import com.softwaremill.quicklens._
