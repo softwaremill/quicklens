@@ -7,6 +7,7 @@ package object quicklens {
 
   case class PathModify[T, U](obj: T, doModify: (T, U => U) => T) {
     def using(mod: U => U): T = doModify(obj, mod)
+    def setTo(v: U): T = doModify(obj, _ => v)
   }
 
   implicit class AbstractPathModify[T, U](f1: T => PathModify[T, U]) {
