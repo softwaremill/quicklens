@@ -3,6 +3,8 @@ package com.softwaremill
 import scala.language.experimental.macros
 
 package object quicklens {
+  def modify[T, U](obj: T)(path: T => U): PathModify[T, U] = macro QuicklensMacros.modify_impl[T, U]
+
   case class PathModify[T, U](obj: T, doModify: (T, U => U) => T) {
     def using(mod: U => U): T = doModify(obj, mod)
   }
@@ -13,5 +15,20 @@ package object quicklens {
     }
   }
 
-  def modify[T, U](obj: T)(path: T => U): PathModify[T, U] = macro QuicklensMacros.modify_impl[T, U]
+  implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F]) {
+    def each: T = sys.error("Cano only be used inside modify!")
+  }
+
+  trait QuicklensFunctor[F[_]] {
+    def map[A, B](fa: F[A])(f: A => B): F[B]
+  }
+  implicit object OptionQuicklensFunctor extends QuicklensFunctor[Option] {
+    override def map[A, B](fa: Option[A])(f: (A) => B) = fa.map(f)
+  }
+  implicit object ListQuicklensFunctor extends QuicklensFunctor[List] {
+    override def map[A, B](fa: List[A])(f: (A) => B) = fa.map(f)
+  }
+  implicit object VectorQuicklensFunctor extends QuicklensFunctor[Vector] {
+    override def map[A, B](fa: Vector[A])(f: (A) => B) = fa.map(f)
+  }
 }
