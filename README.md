@@ -25,14 +25,14 @@ import com.softwaremill.quicklens._
 
 case class Street(name: String)
 case class Address(street: Option[Street])
-case class Person(address: List[Address])
+case class Person(addresses: List[Address])
 
 val person = Person(List(
   Address(Some(Street("1 Functional Rd."))),
   Address(Some(Street("2 Imperative Dr.")))
 ))
 
-val p2 = modify(person)(_.address.each.street.each.name).using(_.toUpperCase)
+val p2 = modify(person)(_.addresses.each.street.each.name).using(_.toUpperCase)
 ````
 
 `.each` can only be used inside a `modify` and "unwraps" the container (currently supports `List`s and `Option`s).
