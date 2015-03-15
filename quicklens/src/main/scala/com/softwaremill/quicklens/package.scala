@@ -33,7 +33,7 @@ package object quicklens {
   }
 
   implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T, T]) {
-    def each: T = sys.error("Cano only be used inside modify!")
+    def each: T = sys.error("Can only be used inside modify!")
   }
 
   trait QuicklensFunctor[F[_], A, B] {
