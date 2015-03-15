@@ -1,5 +1,7 @@
 package com.softwaremill
 
+import scala.collection.TraversableLike
+import scala.collection.generic.CanBuildFrom
 import scala.language.experimental.macros
 
 package object quicklens {
@@ -30,20 +32,19 @@ package object quicklens {
     }
   }
 
-  implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F]) {
+  implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T, T]) {
     def each: T = sys.error("Cano only be used inside modify!")
   }
 
-  trait QuicklensFunctor[F[_]] {
-    def map[A, B](fa: F[A])(f: A => B): F[B]
+  trait QuicklensFunctor[F[_], A, B] {
+    def map(fa: F[A])(f: A => B): F[B]
   }
-  implicit object OptionQuicklensFunctor extends QuicklensFunctor[Option] {
-    override def map[A, B](fa: Option[A])(f: (A) => B) = fa.map(f)
-  }
-  implicit object ListQuicklensFunctor extends QuicklensFunctor[List] {
-    override def map[A, B](fa: List[A])(f: (A) => B) = fa.map(f)
-  }
-  implicit object VectorQuicklensFunctor extends QuicklensFunctor[Vector] {
-    override def map[A, B](fa: Vector[A])(f: (A) => B) = fa.map(f)
-  }
+  implicit def optionQuicklensFunctor[A, B]: QuicklensFunctor[Option, A, B] =
+    new QuicklensFunctor[Option, A, B] {
+      override def map(fa: Option[A])(f: (A) => B) = fa.map(f)
+    }
+  implicit def traversableQuicklensFunctor[F[_], A, B](implicit cbf: CanBuildFrom[F[A], B, F[B]], e1: F[A] => TraversableLike[A, F[A]]): QuicklensFunctor[F, A, B] =
+    new QuicklensFunctor[F, A, B] {
+      override def map(fa: F[A])(f: (A) => B) = fa.map(f)
+    }
 }
