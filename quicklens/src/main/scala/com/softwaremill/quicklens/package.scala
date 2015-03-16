@@ -1,5 +1,6 @@
 package com.softwaremill
 
+import scala.annotation.compileTimeOnly
 import scala.collection.TraversableLike
 import scala.collection.generic.CanBuildFrom
 import scala.language.experimental.macros
@@ -33,7 +34,8 @@ package object quicklens {
   }
 
   implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T, T]) {
-    def each: T = sys.error("Can only be used inside modify!")
+    @compileTimeOnly("each can only be used inside modify")
+    def each: T = sys.error("")
   }
 
   trait QuicklensFunctor[F[_], A, B] {
