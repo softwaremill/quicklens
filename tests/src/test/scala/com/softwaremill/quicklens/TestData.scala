@@ -39,4 +39,8 @@ object TestData {
 
   val y1 = Y1(Y2(List(Y3(Some(Y4("d1"))), Y3(Some(Y4("d2"))), Y3(None))))
   val y1dup = Y1(Y2(List(Y3(Some(Y4("d1d1"))), Y3(Some(Y4("d2d2"))), Y3(None))))
+
+  case class Z1(name: Option[String])
+  val z1 = Z1(Some("data"))
+  val z1dup = Z1(Some("datadata"))
 }

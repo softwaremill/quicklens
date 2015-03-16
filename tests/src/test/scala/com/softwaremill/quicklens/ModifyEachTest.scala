@@ -20,4 +20,8 @@ class ModifyEachTest extends FlatSpec with ShouldMatchers {
   it should "modify both lists and options" in {
     modify(y1)(_.y2.y3.each.y4.each.name).using(duplicate) should be (y1dup)
   }
+
+  it should "allow .each at then end" in {
+    modify(z1)(_.name.each).using(duplicate) should be (z1dup)
+  }
 }
