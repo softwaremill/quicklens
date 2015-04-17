@@ -1,3 +1,5 @@
+import org.scalajs.sbtplugin.ScalaJSPlugin.AutoImport.crossProject
+import org.scalajs.sbtplugin.cross.CrossType
 import sbt.Keys._
 import sbt._
 
@@ -47,14 +49,17 @@ object QuicklensBuild extends Build {
     "root",
     file("."),
     settings = buildSettings ++ Seq(publishArtifact := false)
-  ) aggregate(quicklens, tests)
+  ) aggregate(quicklensJVM, quicklensJS, tests)
 
-  lazy val quicklens: Project = Project(
-    "quicklens",
-    file("quicklens"),
-    settings = buildSettings ++ Seq(
-      libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _))
-  )
+  lazy val quicklens = (crossProject.crossType(CrossType.Pure) in file("quicklens")).
+    settings(
+      buildSettings ++ Seq(
+        name := "quicklens",
+        libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _)): _*
+    )
+
+  lazy val quicklensJVM = quicklens.jvm
+  lazy val quicklensJS = quicklens.js
 
   lazy val tests: Project = Project(
     "tests",
@@ -66,5 +71,5 @@ object QuicklensBuild extends Build {
       // Otherwise when running tests in sbt, the macro is not visible
       // (both macro and usages are compiled in the same compiler run)
       fork in Test := true)
-  ) dependsOn(quicklens)
+  ) dependsOn(quicklensJVM)
 }
