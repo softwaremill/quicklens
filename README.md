@@ -79,3 +79,5 @@ Available in Maven Central:
 ````scala
 val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.3"
 ````
+
+Also available for [Scala.js](http://www.scala-js.org)!
