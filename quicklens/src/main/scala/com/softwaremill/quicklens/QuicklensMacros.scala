@@ -10,7 +10,7 @@ object QuicklensMacros {
    * modify(a)(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
    */
   def modify_impl[T, U](c: blackbox.Context)(obj: c.Expr[T])(path: c.Expr[T => U]): c.Tree = {
-    return modify_impl_withObjTree(c)(path, obj.tree)
+    modify_impl_withObjTree(c)(path, obj.tree)
   }
 
   /**
@@ -29,7 +29,7 @@ object QuicklensMacros {
 
     val modification = modify_impl_withObjTree(c)(path, Ident(tValueName))
 
-    return Block(tValue, modification)
+    Block(tValue, modification)
   }
 
   private def modify_impl_withObjTree[T, U](c: blackbox.Context)(path: c.Expr[T => U], objTree: c.Tree): c.Tree = {
