@@ -10,6 +10,29 @@ object QuicklensMacros {
    * modify(a)(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
    */
   def modify_impl[T, U](c: blackbox.Context)(obj: c.Expr[T])(path: c.Expr[T => U]): c.Tree = {
+    return modify_impl_withObjTree(c)(path, obj.tree)
+  }
+
+  /**
+   * a.modify(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
+   */
+  def modifyPimp_impl[T, U](c: blackbox.Context)(path: c.Expr[T => U]): c.Tree = {
+    import c.universe._
+
+    val wrappedT = c.macroApplication match {
+      case Apply(TypeApply(Select(Apply(_, List(w)), _), _), _) => w
+      case _ => c.abort(c.enclosingPosition, s"Unknown usage of ModifyPimp. Please file a bug.")
+    }
+
+    val tValueName = TermName(c.freshName())
+    val tValue = q"val $tValueName = $wrappedT"
+
+    val modification = modify_impl_withObjTree(c)(path, Ident(tValueName))
+
+    return Block(tValue, modification)
+  }
+
+  private def modify_impl_withObjTree[T, U](c: blackbox.Context)(path: c.Expr[T => U], objTree: c.Tree): c.Tree = {
     import c.universe._
 
     sealed trait PathElement
@@ -103,6 +126,7 @@ object QuicklensMacros {
 
     val rootPathElParamTree = ValDef(Modifiers(), rootPathEl, TypeTree(), EmptyTree)
     val fnParamTree = ValDef(Modifiers(), fn, TypeTree(), EmptyTree)
-    q"com.softwaremill.quicklens.PathModify($obj, ($rootPathElParamTree, $fnParamTree) => $copies)"
+
+    q"com.softwaremill.quicklens.PathModify($objTree, ($rootPathElParamTree, $fnParamTree) => $copies)"
   }
 }

@@ -10,12 +10,25 @@ import com.softwaremill.quicklens._
 
 case class Street(name: String)
 case class Address(street: Street)
-case class Person(address: Address)
+case class Person(address: Address, age: Int)
 
-val person = Person(Address(Street("1 Functional Rd.")))
+val person = Person(Address(Street("1 Functional Rd.")), 35)
 
-val p2 = modify(person)(_.address.street.name).using(_.toUpperCase)
-val p3 = modify(person)(_.address.street.name).setTo("3 OO Ln.")
+val p2 = person.modify(_.address.street.name).using(_.toUpperCase)
+val p3 = person.modify(_.address.street.name).setTo("3 OO Ln.")
+
+// or
+ 
+val p4 = modify(person)(_.address.street.name).using(_.toUpperCase)
+val p5 = modify(person)(_.address.street.name).setTo("3 OO Ln.")
+````
+
+**Chain modifications:**
+
+````scala
+person
+  .modify(_.address.street.name).using(_.toUpperCase)
+  .modify(_.age).using(_ - 1)
 ````
 
 **Traverse options/lists using .each:**
@@ -32,7 +45,7 @@ val person = Person(List(
   Address(Some(Street("2 Imperative Dr.")))
 ))
 
-val p2 = modify(person)(_.addresses.each.street.each.name).using(_.toUpperCase)
+val p2 = person.modify(_.addresses.each.street.each.name).using(_.toUpperCase)
 ````
 
 `.each` can only be used inside a `modify` and "unwraps" the container (currently supports `List`s and `Option`s).
@@ -77,7 +90,7 @@ Read [the blog](http://www.warski.org/blog/2015/02/quicklens-modify-deeply-neste
 Available in Maven Central:
 
 ````scala
-val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.3.1"
+val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.4.0"
 ````
 
 Also available for [Scala.js](http://www.scala-js.org)!

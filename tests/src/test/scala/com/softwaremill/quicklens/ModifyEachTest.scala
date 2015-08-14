@@ -8,6 +8,10 @@ class ModifyEachTest extends FlatSpec with ShouldMatchers {
     modify(x4)(_.x5.each.name).using(duplicate) should be (x4dup)
   }
 
+  it should "modify a single-nested optional case class field (pimped)" in {
+    x4.modify(_.x5.each.name).using(duplicate) should be (x4dup)
+  }
+
   it should "modify multiple deeply-nested optional case class field" in {
     modify(x1)(_.x2.x3.each.x4.x5.each.name).using(duplicate) should be (x1dup)
   }
