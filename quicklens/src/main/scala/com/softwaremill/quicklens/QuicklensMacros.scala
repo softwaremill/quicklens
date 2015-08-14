@@ -1,7 +1,7 @@
 package com.softwaremill.quicklens
 
 import scala.annotation.tailrec
-import scala.reflect.macros.blackbox
+import scala.reflect.macros.Context
 
 object QuicklensMacros {
   private val ShapeInfo = "Path must have shape: _.field1.field2.each.field3.(...)"
@@ -9,14 +9,14 @@ object QuicklensMacros {
   /**
    * modify(a)(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
    */
-  def modify_impl[T, U](c: blackbox.Context)(obj: c.Expr[T])(path: c.Expr[T => U]): c.Tree = {
-    return modify_impl_withObjTree(c)(path, obj.tree)
+  def modify_impl[T, U](c: Context)(obj: c.Expr[T])(path: c.Expr[T => U]): c.Expr[PathModify[T, U]] = {
+    c.Expr[PathModify[T, U]](modify_impl_withObjTree(c)(path, obj.tree))
   }
 
   /**
    * a.modify(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
    */
-  def modifyPimp_impl[T, U](c: blackbox.Context)(path: c.Expr[T => U]): c.Tree = {
+  def modifyPimp_impl[T, U](c: Context)(path: c.Expr[T => U]): c.Expr[PathModify[T, U]] = {
     import c.universe._
 
     val wrappedT = c.macroApplication match {
@@ -24,15 +24,15 @@ object QuicklensMacros {
       case _ => c.abort(c.enclosingPosition, s"Unknown usage of ModifyPimp. Please file a bug.")
     }
 
-    val tValueName = TermName(c.freshName())
+    val tValueName = newTermName(c.fresh())
     val tValue = q"val $tValueName = $wrappedT"
 
     val modification = modify_impl_withObjTree(c)(path, Ident(tValueName))
 
-    return Block(tValue, modification)
+    c.Expr[PathModify[T, U]](Block(tValue, modification))
   }
 
-  private def modify_impl_withObjTree[T, U](c: blackbox.Context)(path: c.Expr[T => U], objTree: c.Tree): c.Tree = {
+  private def modify_impl_withObjTree[T, U](c: Context)(path: c.Expr[T => U], objTree: c.Tree): c.Tree = {
     import c.universe._
 
     sealed trait PathElement
@@ -46,9 +46,9 @@ object QuicklensMacros {
     def collectPathElements(tree: c.Tree, acc: List[PathElement]): List[PathElement] = {
       tree match {
         case q"$parent.$child" => collectPathElements(parent, TermPathElement(child) :: acc)
-        case q"$tpname[..$_]($t)($f)" if tpname.toString.endsWith("QuicklensEach") =>
+        case q"$tpname[..$x]($t)($f)" if tpname.toString.endsWith("QuicklensEach") =>
           val accWithoutEach = acc match {
-            case TermPathElement(TermName("each")) :: rest => rest
+            case TermPathElement(n) :: rest if n.decoded == "each" => rest
             case _ => c.abort(c.enclosingPosition, s"Invalid use of .each. $ShapeInfo, got: ${path.tree}")
           }
           collectPathElements(t, EachPathElement(f) :: accWithoutEach)
@@ -97,7 +97,7 @@ object QuicklensMacros {
           val copy = q"$selectCopy($pathEl = $newVal)"
           generateCopies(rootPathEl, tail, copy)
         case EachPathElement(functor) :: tail =>
-          val newRootPathEl = TermName(c.freshName())
+          val newRootPathEl = newTermName(c.fresh())
           val selectMapped = generateSelects(newRootPathEl, tail)
           val rootPathElParamTree = ValDef(Modifiers(), rootPathEl, TypeTree(), EmptyTree)
           val functorMap = q"$functor.map($selectMapped)(($rootPathElParamTree) => $newVal)"
@@ -113,8 +113,8 @@ object QuicklensMacros {
     }
 
     // the initial root object (the end-root object can be different if there are .each's on the way)
-    val initialRootPathEl = TermName(c.freshName())
-    val fn = TermName(c.freshName()) // the function that modifies the last path element
+    val initialRootPathEl = newTermName(c.fresh())
+    val fn = newTermName(c.fresh()) // the function that modifies the last path element
 
     val reversePathEls = pathEls.reverse
 

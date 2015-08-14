@@ -1,6 +1,5 @@
 package com.softwaremill
 
-import scala.annotation.compileTimeOnly
 import scala.collection.TraversableLike
 import scala.collection.generic.CanBuildFrom
 import scala.language.experimental.macros
@@ -28,19 +27,6 @@ package object quicklens {
     def modify[U](path: T => U): PathModify[T, U] = macro QuicklensMacros.modifyPimp_impl[T, U]
   }
 
-  case class PathModify[T, U](obj: T, doModify: (T, U => U) => T) {
-    /**
-     * Transform the value of the field using the given function.
-     * @return A copy of the root object with the (deeply nested) field modified.
-     */
-    def using(mod: U => U): T = doModify(obj, mod)
-    /**
-     * Set the value of the field to a new value.
-     * @return A copy of the root object with the (deeply nested) field set to the new value.
-     */
-    def setTo(v: U): T = doModify(obj, _ => v)
-  }
-
   implicit class AbstractPathModifyPimp[T, U](f1: T => PathModify[T, U]) {
     def andThenModify[V](f2: U => PathModify[U, V]): T => PathModify[T, V] = { (t: T) =>
       PathModify[T, V](t, (t, vv) => f1(t).doModify(t, u => f2(u).doModify(u, vv)))
@@ -48,7 +34,6 @@ package object quicklens {
   }
 
   implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T, T]) {
-    @compileTimeOnly("each can only be used inside modify")
     def each: T = sys.error("")
   }
 

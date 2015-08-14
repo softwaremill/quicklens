@@ -1,5 +1,3 @@
-import org.scalajs.sbtplugin.ScalaJSPlugin.AutoImport.crossProject
-import org.scalajs.sbtplugin.cross.CrossType
 import sbt.Keys._
 import sbt._
 
@@ -7,7 +5,7 @@ object BuildSettings {
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     organization  := "com.softwaremill.quicklens",
     version       := "1.4.0",
-    scalaVersion  := "2.11.6",
+    scalaVersion  := "2.10.5",
     // Sonatype OSS deployment
     publishTo <<= version { (v: String) =>
       val nexus = "https://oss.sonatype.org/"
@@ -49,17 +47,17 @@ object QuicklensBuild extends Build {
     "root",
     file("."),
     settings = buildSettings ++ Seq(publishArtifact := false)
-  ) aggregate(quicklensJVM, quicklensJS, tests)
+  ) aggregate(quicklens, tests)
 
-  lazy val quicklens = (crossProject.crossType(CrossType.Pure) in file("quicklens")).
-    settings(
-      buildSettings ++ Seq(
-        name := "quicklens",
-        libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _)): _*
-    )
-
-  lazy val quicklensJVM = quicklens.jvm
-  lazy val quicklensJS = quicklens.js
+  lazy val quicklens: Project = Project(
+    "quicklens",
+    file("quicklens"),
+    settings = buildSettings ++ Seq(
+      name := "quicklens",
+      libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _),
+      addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full),
+      libraryDependencies += "org.scalamacros" %% "quasiquotes" % "2.0.1")
+  )
 
   lazy val tests: Project = Project(
     "tests",
@@ -71,5 +69,5 @@ object QuicklensBuild extends Build {
       // Otherwise when running tests in sbt, the macro is not visible
       // (both macro and usages are compiled in the same compiler run)
       fork in Test := true)
-  ) dependsOn(quicklensJVM)
+  ) dependsOn(quicklens)
 }
