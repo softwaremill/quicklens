@@ -23,4 +23,7 @@ class ModifyAtTest extends FlatSpec with ShouldMatchers {
     modify(y1)(_.y2.y3.at(1).y4.each.name).using(duplicate) should be(y1at1dup)
   }
 
+  it should "throw an exception if there's no element at the given index" in {
+    an[IndexOutOfBoundsException] should be thrownBy { modify(l1)(_.at(10).a4.a5.name).using(duplicate) }
+  }
 }

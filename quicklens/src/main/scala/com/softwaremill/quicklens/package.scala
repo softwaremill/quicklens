@@ -82,6 +82,10 @@ package object quicklens {
       override def at(fa: F[T], idx: Int)(f: T => T) = {
         val builder = cbf(fa)
 
+        if (idx >= fa.length) {
+          throw new IndexOutOfBoundsException(idx.toString)
+        }
+
         var i = 0
         fa.foreach { e =>
           if (i == idx) builder += f(fa(idx))
