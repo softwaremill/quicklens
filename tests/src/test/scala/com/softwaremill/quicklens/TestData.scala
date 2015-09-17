@@ -1,7 +1,7 @@
 package com.softwaremill.quicklens
 
 object TestData {
-  def duplicate(s: String) = s+s
+  def duplicate(s: String) = s + s
 
   case class A1(a2: A2)
   case class A2(a3: A3)
@@ -40,8 +40,16 @@ object TestData {
 
   val y1 = Y1(Y2(List(Y3(Some(Y4("d1"))), Y3(Some(Y4("d2"))), Y3(None))))
   val y1dup = Y1(Y2(List(Y3(Some(Y4("d1d1"))), Y3(Some(Y4("d2d2"))), Y3(None))))
+  val y1at1dup = Y1(Y2(List(Y3(Some(Y4("d1"))), Y3(Some(Y4("d2d2"))), Y3(None))))
 
   case class Z1(name: Option[String])
   val z1 = Z1(Some("data"))
   val z1dup = Z1(Some("datadata"))
+
+  val l1 = List(A3(A4(A5("d1"))), A3(A4(A5("d2"))), A3(A4(A5("d3"))), A3(A4(A5("d4"))))
+  val l1at2dup = List(A3(A4(A5("d1"))), A3(A4(A5("d2"))), A3(A4(A5("d3d3"))), A3(A4(A5("d4"))))
+  val ll1 = List(List(A5("d1"), A5("d2")), List(A5("d3"), A5("d4"), A5("d5")), List(A5("d6"), A5("d7")))
+  val ll1at2at1dup = List(List(A5("d1"), A5("d2")), List(A5("d3"), A5("d4"), A5("d5")), List(A5("d6"), A5("d7d7")))
+  val ll1at2eachdup = List(List(A5("d1"), A5("d2")), List(A5("d3"), A5("d4"), A5("d5")), List(A5("d6d6"), A5("d7d7")))
+  val ll1eachat1dup = List(List(A5("d1"), A5("d2d2")), List(A5("d3"), A5("d4d4"), A5("d5")), List(A5("d6"), A5("d7d7")))
 }
