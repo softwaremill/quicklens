@@ -48,24 +48,28 @@ package object quicklens {
     }
   }
 
-  implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T, T]) {
+  implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T]) {
     @compileTimeOnly("each can only be used inside modify")
     def each: T = sys.error("")
+
+    @compileTimeOnly("eachWhere can only be used inside modify")
+    def eachWhere(p: T => Boolean): T = sys.error("")
   }
 
-  trait QuicklensFunctor[F[_], A, B] {
-    def map(fa: F[A])(f: A => B): F[B]
-    def each(fa: F[A])(f: A => B): F[B] = map(fa)(f)
+  trait QuicklensFunctor[F[_], A] {
+    def map(fa: F[A])(f: A => A): F[A]
+    def each(fa: F[A])(f: A => A): F[A] = map(fa)(f)
+    def eachWhere(fa: F[A], p: A => Boolean)(f: A => A): F[A] = map(fa) { a => if (p(a)) f(a) else a }
   }
 
-  implicit def optionQuicklensFunctor[A, B]: QuicklensFunctor[Option, A, B] =
-    new QuicklensFunctor[Option, A, B] {
-      override def map(fa: Option[A])(f: A => B) = fa.map(f)
+  implicit def optionQuicklensFunctor[A]: QuicklensFunctor[Option, A] =
+    new QuicklensFunctor[Option, A] {
+      override def map(fa: Option[A])(f: A => A) = fa.map(f)
     }
 
-  implicit def traversableQuicklensFunctor[F[_], A, B](implicit cbf: CanBuildFrom[F[A], B, F[B]], ev: F[A] => TraversableLike[A, F[A]]) =
-    new QuicklensFunctor[F, A, B] {
-      override def map(fa: F[A])(f: A => B) = fa.map(f)
+  implicit def traversableQuicklensFunctor[F[_], A](implicit cbf: CanBuildFrom[F[A], A, F[A]], ev: F[A] => TraversableLike[A, F[A]]) =
+    new QuicklensFunctor[F, A] {
+      override def map(fa: F[A])(f: A => A) = fa.map(f)
     }
 
   implicit class QuicklensAt[F[_], T](t: F[T])(implicit f: QuicklensAtFunctor[F, T]) {

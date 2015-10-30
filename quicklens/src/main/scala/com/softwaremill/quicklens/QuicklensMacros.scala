@@ -40,13 +40,12 @@ object QuicklensMacros {
     case class FunctorPathElement(functor: c.Tree, method: c.TermName, xargs: c.Tree*) extends PathElement
 
     /**
-     * _.a.b.each.c => List(TPE(a), TPE(b), FPE(functor, each, xargs), TPE(c))
+     * _.a.b.each.c => List(TPE(a), TPE(b), FPE(functor, each/at/eachWhere, xargs), TPE(c))
      */
     @tailrec
     def collectPathElements(tree: c.Tree, acc: List[PathElement]): List[PathElement] = {
       def methodSupported(method: TermName) = {
-        // currently, quicklens only supports at method with args
-        Seq("at").exists { _.equals(method.toString) }
+        Seq("at", "eachWhere").exists { _.equals(method.toString) }
       }
       def typeSupported(quicklensType: c.Tree) = {
         Seq("QuicklensEach", "QuicklensAt").exists { quicklensType.toString.endsWith }
