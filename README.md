@@ -59,7 +59,9 @@ the condition. All other elements remain unchanged.
 
 ````scala
 def filterAddress: Address => Boolean = ???
-person.modify(_.addresses.eachWhere(filterAddress).street.eachWhere(_.isDefined).name).using(_.toUpperCase)
+person
+  .modify(_.addresses.eachWhere(filterAddress).street.eachWhere(_.isDefined).name)
+  .using(_.toUpperCase)
 ````
 
 **Modify specific sequence elements using .at:**
