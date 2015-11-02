@@ -60,7 +60,8 @@ the condition. All other elements remain unchanged.
 ````scala
 def filterAddress: Address => Boolean = ???
 person
-  .modify(_.addresses.eachWhere(filterAddress).street.eachWhere(_.isDefined).name)
+  .modify(_.addresses.eachWhere(filterAddress)
+           .street.eachWhere(_.name.startsWith("1")).name)
   .using(_.toUpperCase)
 ````
 
