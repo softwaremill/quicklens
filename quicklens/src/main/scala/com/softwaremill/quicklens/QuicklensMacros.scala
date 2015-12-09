@@ -36,30 +36,38 @@ object QuicklensMacros {
     import c.universe._
 
     sealed trait PathElement
-    case class TermPathElement(term: c.TermName) extends PathElement
-    case class EachPathElement(functor: c.Tree) extends PathElement
+    case class TermPathElement(term: c.TermName, xargs: c.Tree*) extends PathElement
+    case class FunctorPathElement(functor: c.Tree, method: c.TermName, xargs: c.Tree*) extends PathElement
 
     /**
-     * _.a.b.each.c => List(TPE(a), TPE(b), EPE(functor), TPE(c))
+     * _.a.b.each.c => List(TPE(a), TPE(b), FPE(functor, each/at/eachWhere, xargs), TPE(c))
      */
     @tailrec
     def collectPathElements(tree: c.Tree, acc: List[PathElement]): List[PathElement] = {
+      def methodSupported(method: TermName) = {
+        Seq("at", "eachWhere").exists { _.equals(method.toString) }
+      }
+      def typeSupported(quicklensType: c.Tree) = {
+        Seq("QuicklensEach", "QuicklensAt").exists { quicklensType.toString.endsWith }
+      }
       tree match {
         case q"$parent.$child" => collectPathElements(parent, TermPathElement(child) :: acc)
-        case q"$tpname[..$x]($t)($f)" if tpname.toString.endsWith("QuicklensEach") =>
-          val accWithoutEach = acc match {
-            case TermPathElement(n) :: rest if n.decoded == "each" => rest
-            case _ => c.abort(c.enclosingPosition, s"Invalid use of .each. $ShapeInfo, got: ${path.tree}")
+        case q"$parent.$method(..$xargs)" if methodSupported(method) =>
+          collectPathElements(parent, TermPathElement(method, xargs:_*) :: acc)
+        case q"$tpname[..$x]($t)($f)" if typeSupported(tpname) =>
+          val newAcc = acc match {
+            // replace the term controlled by quicklens
+            case TermPathElement(term, xargs @ _*) :: rest => FunctorPathElement(f, term, xargs: _*) :: rest
+            case pathEl :: rest => c.abort(c.enclosingPosition, s"Invalid use of path element $pathEl. $ShapeInfo, got: ${path.tree}")
           }
-          collectPathElements(t, EachPathElement(f) :: accWithoutEach)
+          collectPathElements(t, newAcc)
         case t: Ident => acc
-        case _ =>
-          c.abort(c.enclosingPosition, s"Unsupported path element. $ShapeInfo, got: $tree")
+        case _ => c.abort(c.enclosingPosition, s"Unsupported path element. $ShapeInfo, got: $tree")
       }
     }
 
     /**
-     * (x, List(TPE(c), TPE(b), EPE(functor), TPE(a))) => x.b.c
+     * (x, List(TPE(c), TPE(b), FPE(functor, method, xargs), TPE(a))) => x.b.c
      */
     def generateSelects(rootPathEl: c.TermName, reversePathEls: List[PathElement]): c.Tree = {
       @tailrec
@@ -67,7 +75,7 @@ object QuicklensMacros {
         els match {
           case Nil => result
           case TermPathElement(term) :: tail => terms(tail, term :: result)
-          case EachPathElement(_) :: _ => result
+          case FunctorPathElement(_, _, _*) :: _ => result
         }
       }
 
@@ -85,8 +93,8 @@ object QuicklensMacros {
     }
 
     /**
-     * (a, List(TPE(d), TPE(c), EPE(functor), TPE(b)), k) =>
-     *   (aa, aa.copy(b = functor.map(aa.b)(a => a.copy(c = a.c.copy(d = k)))
+     * (a, List(TPE(d), TPE(c), FPE(functor, method, xargs), TPE(b)), k) =>
+     *   (aa, aa.copy(b = functor.method(aa.b, xargs)(a => a.copy(c = a.c.copy(d = k)))
      */
     def generateCopies(rootPathEl: c.TermName, reversePathEls: List[PathElement], newVal: c.Tree): (c.TermName, c.Tree) = {
       reversePathEls match {
@@ -96,11 +104,12 @@ object QuicklensMacros {
           val selectCopy = q"$selectCurrVal.copy"
           val copy = q"$selectCopy($pathEl = $newVal)"
           generateCopies(rootPathEl, tail, copy)
-        case EachPathElement(functor) :: tail =>
+        case FunctorPathElement(functor, method, xargs @ _*) :: tail =>
           val newRootPathEl = newTermName(c.fresh())
-          val selectMapped = generateSelects(newRootPathEl, tail)
+          // combine the selected path with variable args
+          val args = generateSelects(newRootPathEl, tail) :: xargs.toList
           val rootPathElParamTree = ValDef(Modifiers(), rootPathEl, TypeTree(), EmptyTree)
-          val functorMap = q"$functor.map($selectMapped)(($rootPathElParamTree) => $newVal)"
+          val functorMap = q"$functor.$method(..$args)(($rootPathElParamTree) => $newVal)"
           generateCopies(newRootPathEl, tail, functorMap)
       }
     }

@@ -52,6 +52,28 @@ val p2 = person.modify(_.addresses.each.street.each.name).using(_.toUpperCase)
 You can add support for your own containers by providing an implicit `QuicklensFunctor[C]` with the appropriate
 `C` type parameter.
 
+**Traverse selected elements using .eachWhere:**
+
+Similarly to `.each`, you can use `.eachWhere(p)` where `p` is a predicate to modify only the elements which satisfy
+the condition. All other elements remain unchanged.
+
+````scala
+def filterAddress: Address => Boolean = ???
+person
+  .modify(_.addresses.eachWhere(filterAddress)
+           .street.eachWhere(_.name.startsWith("1")).name)
+  .using(_.toUpperCase)
+````
+
+**Modify specific sequence elements using .at:**
+
+````scala
+person.modify(_.addresses.at(2).street.each.name).using(_.toUpperCase)
+````
+
+Similarly to `.each`, `.at` modifies only the element at the given index. If there's no element at that index,
+an `IndexOutOfBoundsException` is thrown.
+
 **Re-usable modifications (lenses):**
 
 ````scala
@@ -90,7 +112,7 @@ Read [the blog](http://www.warski.org/blog/2015/02/quicklens-modify-deeply-neste
 Available in Maven Central:
 
 ````scala
-val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.4.0"
+val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.4.2"
 ````
 
 Also available for [Scala.js](http://www.scala-js.org)!
