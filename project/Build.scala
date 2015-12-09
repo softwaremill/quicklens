@@ -5,7 +5,7 @@ object BuildSettings {
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     organization  := "com.softwaremill.quicklens",
     version       := "1.4.2",
-    scalaVersion  := "2.10.5",
+    scalaVersion  := "2.10.6",
     // Sonatype OSS deployment
     publishTo <<= version { (v: String) =>
       val nexus = "https://oss.sonatype.org/"
@@ -55,7 +55,7 @@ object QuicklensBuild extends Build {
     settings = buildSettings ++ Seq(
       name := "quicklens",
       libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _),
-      addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.1" cross CrossVersion.full),
+      addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
       libraryDependencies += "org.scalamacros" %% "quasiquotes" % "2.0.1")
   )
 
