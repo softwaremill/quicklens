@@ -35,9 +35,43 @@ object QuicklensMacros {
   private def modify_impl_withObjTree[T, U](c: blackbox.Context)(path: c.Expr[T => U], objTree: c.Tree): c.Tree = {
     import c.universe._
 
+    sealed trait PathAccess
+    case object DirectPathAccess extends PathAccess
+    case class SealedPathAccess(types: Set[Symbol]) extends PathAccess
+
     sealed trait PathElement
-    case class TermPathElement(term: c.TermName, xargs: c.Tree*) extends PathElement
+    case class TermPathElement(term: c.TermName, access: PathAccess, xargs: c.Tree*) extends PathElement
     case class FunctorPathElement(functor: c.Tree, method: c.TermName, xargs: c.Tree*) extends PathElement
+
+    /**
+     * Determine if the `.copy` method should be applied directly
+     * or through a match across all subclasses (for sealed traits).
+     */
+    def determinePathAccess(typeSymbol: Symbol) = {
+      def ifEmpty[A](set: Set[A], empty: => Set[A]) =
+        if (set.isEmpty) empty else set
+
+      def knownDirectSubclasses(sealedSymbol: ClassSymbol) = ifEmpty(
+        sealedSymbol.knownDirectSubclasses,
+        c.abort(
+          c.enclosingPosition,
+          s"""Could not find subclasses of sealed trait $sealedSymbol.
+             |You might need to ensure that it gets compiled before this invocation.
+             |See also: <https://issues.scala-lang.org/browse/SI-7046>.""".stripMargin
+        )
+      )
+
+      def expand(symbol: Symbol): Set[Symbol] = Set(symbol)
+        .filter(_.isClass)
+        .map(_.asClass)
+        .map { s => s.typeSignature; s } // see <https://issues.scala-lang.org/browse/SI-7755>
+        .filter(_.isSealed)
+        .flatMap(s => knownDirectSubclasses(s))
+        .flatMap(s => ifEmpty(expand(s), Set(s)))
+
+      val subclasses = expand(typeSymbol)
+      if (subclasses.isEmpty) DirectPathAccess else SealedPathAccess(subclasses)
+    }
 
     /**
      * _.a.b.each.c => List(TPE(a), TPE(b), FPE(functor, each/at/eachWhere, xargs), TPE(c))
@@ -51,13 +85,15 @@ object QuicklensMacros {
         Seq("QuicklensEach", "QuicklensAt").exists { quicklensType.toString.endsWith }
       }
       tree match {
-        case q"$parent.$child" => collectPathElements(parent, TermPathElement(child) :: acc)
+        case q"$parent.$child" =>
+          val access = determinePathAccess(parent.tpe.typeSymbol)
+          collectPathElements(parent, TermPathElement(child, access) :: acc)
         case q"$parent.$method(..$xargs)" if methodSupported(method) => 
-          collectPathElements(parent, TermPathElement(method, xargs:_*) :: acc)
+          collectPathElements(parent, TermPathElement(method, DirectPathAccess, xargs:_*) :: acc)
         case q"$tpname[..$_]($t)($f)" if typeSupported(tpname) =>
           val newAcc = acc match {
             // replace the term controlled by quicklens
-            case TermPathElement(term, xargs @ _*) :: rest => FunctorPathElement(f, term, xargs: _*) :: rest
+            case TermPathElement(term, _, xargs @ _*) :: rest => FunctorPathElement(f, term, xargs: _*) :: rest
             case pathEl :: rest => c.abort(c.enclosingPosition, s"Invalid use of path element $pathEl. $ShapeInfo, got: ${path.tree}")
           }
           collectPathElements(t, newAcc)
@@ -74,7 +110,7 @@ object QuicklensMacros {
       def terms(els: List[PathElement], result: List[c.TermName]): List[c.TermName] = {
         els match {
           case Nil => result
-          case TermPathElement(term) :: tail => terms(tail, term :: result)
+          case TermPathElement(term, _) :: tail => terms(tail, term :: result)
           case FunctorPathElement(_, _, _*) :: _ => result
         }
       }
@@ -93,16 +129,36 @@ object QuicklensMacros {
     }
 
     /**
+     * (tree, DirectPathAccess) => f(tree)
+     *
+     * (tree, SealedPathAccess(Set(T1, T2, ...)) => tree match {
+     *   case x1: T1 => f(x1)
+     *   case x2: T2 => f(x2)
+     *   ...
+     * }
+     */
+    def generateAccess(tree: c.Tree, access: PathAccess)(f: c.Tree => c.Tree) = access match {
+      case DirectPathAccess => f(tree)
+      case SealedPathAccess(types) =>
+        val cases = types map { tp =>
+          val pat = TermName(c.freshName())
+          cq"$pat: $tp => ${f(Ident(pat))}"
+        }
+        q"$tree match { case ..$cases }"
+    }
+
+    /**
      * (a, List(TPE(d), TPE(c), FPE(functor, method, xargs), TPE(b)), k) =>
      *   (aa, aa.copy(b = functor.method(aa.b, xargs)(a => a.copy(c = a.c.copy(d = k)))
      */
     def generateCopies(rootPathEl: c.TermName, reversePathEls: List[PathElement], newVal: c.Tree): (c.TermName, c.Tree) = {
       reversePathEls match {
         case Nil => (rootPathEl, newVal)
-        case TermPathElement(pathEl) :: tail =>
+        case TermPathElement(pathEl, access) :: tail =>
           val selectCurrVal = generateSelects(rootPathEl, tail)
-          val selectCopy = q"$selectCurrVal.copy"
-          val copy = q"$selectCopy($pathEl = $newVal)"
+          val copy = generateAccess(selectCurrVal, access) { currVal =>
+            q"$currVal.copy($pathEl = $newVal)"
+          }
           generateCopies(rootPathEl, tail, copy)
         case FunctorPathElement(functor, method, xargs @ _*) :: tail =>
           val newRootPathEl = TermName(c.freshName())
