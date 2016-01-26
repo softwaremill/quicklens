@@ -102,6 +102,27 @@ val modifyStreetName = modify(_: Address)(_.street.name)
 val p6 = (modifyAddress andThenModify modifyStreetName)(person).using(_.toUpperCase)
 ````
 
+**Modify nested sealed hierarchies:**
+
+> *Note: this feature is experimental and might not work due to compilation order issues.
+> See https://issues.scala-lang.org/browse/SI-7046 for more details.*
+
+````scala
+import com.softwaremill.quicklens._
+
+sealed trait Pet { def name: String }
+case class Fish(name: String) extends Pet
+sealed trait LeggedPet extends Pet
+case class Cat(name: String) extends LeggedPet
+case class Dog(name: String) extends LeggedPet
+
+val pets = List[Pet](
+  Fish("Finn"), Cat("Catia"), Dog("Douglas")
+)
+
+val juniorPets = pets.modify(_.each.name).using(_ + ", Jr.")
+````
+
 ---
 
 Similar to lenses ([1](http://eed3si9n.com/learning-scalaz/Lens.html),
