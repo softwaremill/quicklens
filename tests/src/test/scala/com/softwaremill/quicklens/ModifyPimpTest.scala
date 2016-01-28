@@ -12,4 +12,8 @@ class ModifyPimpTest extends FlatSpec with ShouldMatchers {
     a1.modify(_.a2.a3.a4.a5.name).using(duplicate)
       .modify(_.a2.a3.a4.a5.name).using(duplicate) should be (a1dupdup)
   }
+
+  it should "modify several fields" in {
+    b1.modifyAll(_.b2, _.b3.each).using(duplicate) should be (b1dupdup)
+  }
 }

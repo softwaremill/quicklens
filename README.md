@@ -31,6 +31,18 @@ person
   .modify(_.age).using(_ - 1)
 ````
 
+**Modify several fields in one go:**
+
+````scala
+import com.softwaremill.quicklens._
+
+case class Person(firstName: String, middleName: Option[String], lastName: String)
+
+val person = Person("john", Some("steve"), "smith")
+
+person.modifyAll(_.firstName, _.middleName.each, _.lastName).using(_.capitalize)
+````
+
 **Traverse options/lists using .each:**
 
 ````scala

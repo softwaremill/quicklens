@@ -9,30 +9,95 @@ object QuicklensMacros {
   /**
    * modify(a)(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
    */
-  def modify_impl[T, U](c: blackbox.Context)(obj: c.Expr[T])(path: c.Expr[T => U]): c.Tree = {
-    modify_impl_withObjTree(c)(path, obj.tree)
+  def modify_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(obj: c.Expr[T])(
+    path: c.Expr[T => U]
+  ): c.Tree = modifyUnwrapped(c)(obj, modificationForPath(c)(path))
+
+  /**
+   * modifyAll(a)(_.b.c, _.d.e) => new PathMod(a, << chained modifications >>)
+   */
+  def modifyAll_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(obj: c.Expr[T])(
+    path1: c.Expr[T => U],
+    paths: c.Expr[T => U]*
+  ): c.Tree = modifyUnwrapped(c)(obj, modificationsForPaths(c)(path1, paths))
+
+  /**
+   * A helper method for modify_impl and modifyAll_impl.
+   */
+  private def modifyUnwrapped[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    obj: c.Expr[T],
+    modifications: c.Tree
+  ): c.Tree = {
+    import c.universe._
+    q"_root_.com.softwaremill.quicklens.PathModify($obj, $modifications)"
   }
 
   /**
    * a.modify(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
    */
-  def modifyPimp_impl[T, U](c: blackbox.Context)(path: c.Expr[T => U]): c.Tree = {
+  def modifyPimp_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    path: c.Expr[T => U]
+  ): c.Tree = modifyWrapped(c)(modificationForPath(c)(path))
+
+  /**
+   * a.modify(_.b.c, _.d.e) =>  new PathMod(a, << chained modifications >>)
+   */
+  def modifyAllPimp_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    path1: c.Expr[T => U],
+    paths: c.Expr[T => U]*
+  ): c.Tree = modifyWrapped(c)(modificationsForPaths(c)(path1, paths))
+
+  /**
+   * A helper method for modifyPimp_impl and modifyAllPimp_impl.
+   */
+  def modifyWrapped[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    modifications: c.Tree
+  ): c.Tree = {
     import c.universe._
 
-    val wrappedT = c.macroApplication match {
+    val wrappedValue = c.macroApplication match {
       case Apply(TypeApply(Select(Apply(_, List(w)), _), _), _) => w
       case _ => c.abort(c.enclosingPosition, s"Unknown usage of ModifyPimp. Please file a bug.")
     }
 
-    val tValueName = TermName(c.freshName())
-    val tValue = q"val $tValueName = $wrappedT"
+    val valueAlias = TermName(c.freshName())
 
-    val modification = modify_impl_withObjTree(c)(path, Ident(tValueName))
-
-    Block(tValue, modification)
+    Block(
+      q"val $valueAlias = $wrappedValue",
+      q"_root_.com.softwaremill.quicklens.PathModify(${Ident(valueAlias)}, $modifications)"
+    )
   }
 
-  private def modify_impl_withObjTree[T, U](c: blackbox.Context)(path: c.Expr[T => U], objTree: c.Tree): c.Tree = {
+  /**
+   * Compose modifications generated for each path, from left to right.
+   */
+  private def modificationsForPaths[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    path1: c.Expr[T => U],
+    paths: Seq[c.Expr[T => U]]
+  ): c.Tree = {
+    import c.universe._
+
+    val valueName = TermName(c.freshName())
+    val modifierName = TermName(c.freshName())
+
+    val modification1 = q"${modificationForPath(c)(path1)}($valueName, $modifierName)"
+    val chained = paths.foldLeft(modification1) {
+      case (tree, path) =>
+        val modification = modificationForPath(c)(path)
+        q"$modification($tree, $modifierName)"
+    }
+
+    val valueArg = q"val $valueName: ${weakTypeOf[T]}"
+    val modifierArg = q"val $modifierName: (${weakTypeOf[U]} => ${weakTypeOf[U]})"
+    q"($valueArg, $modifierArg) => $chained"
+  }
+
+  /**
+   * Produce a modification for a single path.
+   */
+  private def modificationForPath[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    path: c.Expr[T => U]
+  ): c.Tree = {
     import c.universe._
 
     sealed trait PathAccess
@@ -189,9 +254,9 @@ object QuicklensMacros {
 
     val (rootPathEl, copies) = generateCopies(initialRootPathEl, reversePathEls, mod)
 
-    val rootPathElParamTree = ValDef(Modifiers(), rootPathEl, TypeTree(), EmptyTree)
-    val fnParamTree = ValDef(Modifiers(), fn, TypeTree(), EmptyTree)
+    val rootPathElParamTree = q"val $rootPathEl: ${weakTypeOf[T]}"
+    val fnParamTree = q"val $fn: (${weakTypeOf[U]} => ${weakTypeOf[U]})"
 
-    q"com.softwaremill.quicklens.PathModify($objTree, ($rootPathElParamTree, $fnParamTree) => $copies)"
+    q"($rootPathElParamTree, $fnParamTree) => $copies"
   }
 }
