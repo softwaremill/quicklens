@@ -17,6 +17,16 @@ package object quicklens {
    */
   def modify[T, U](obj: T)(path: T => U): PathModify[T, U] = macro QuicklensMacros.modify_impl[T, U]
 
+  /**
+   * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
+   * via `paths` on the given `obj`.
+   *
+   * All modifications are side-effect free and create copies of the original objects.
+   *
+   * You can use `.each` to traverse options, lists, etc.
+   */
+  def modifyAll[T, U](obj: T)(path1: T => U, paths: (T => U)*): PathModify[T, U] = macro QuicklensMacros.modifyAll_impl[T, U]
+
   implicit class ModifyPimp[T](t: T) {
     /**
      * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
@@ -27,17 +37,27 @@ package object quicklens {
      * You can use `.each` to traverse options, lists, etc.
      */
     def modify[U](path: T => U): PathModify[T, U] = macro QuicklensMacros.modifyPimp_impl[T, U]
+
+    /**
+     * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
+     * via `paths` on the given `obj`.
+     *
+     * All modifications are side-effect free and create copies of the original objects.
+     *
+     * You can use `.each` to traverse options, lists, etc.
+     */
+    def modifyAll[U](path1: T => U, paths: (T => U)*): PathModify[T, U] = macro QuicklensMacros.modifyAllPimp_impl[T, U]
   }
 
   case class PathModify[T, U](obj: T, doModify: (T, U => U) => T) {
     /**
-     * Transform the value of the field using the given function.
-     * @return A copy of the root object with the (deeply nested) field modified.
+     * Transform the value of the field(s) using the given function.
+     * @return A copy of the root object with the (deeply nested) field(s) modified.
      */
     def using(mod: U => U): T = doModify(obj, mod)
     /**
-     * Set the value of the field to a new value.
-     * @return A copy of the root object with the (deeply nested) field set to the new value.
+     * Set the value of the field(s) to a new value.
+     * @return A copy of the root object with the (deeply nested) field(s) set to the new value.
      */
     def setTo(v: U): T = doModify(obj, _ => v)
   }
