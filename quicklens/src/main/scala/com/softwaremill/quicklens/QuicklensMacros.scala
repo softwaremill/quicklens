@@ -24,7 +24,10 @@ object QuicklensMacros {
       case _ => c.abort(c.enclosingPosition, s"Unknown usage of ModifyPimp. Please file a bug.")
     }
 
-    val tValueName = newTermName(c.fresh())
+    // Here and later on: adding "0" at the end is a workaround for these issues:
+    // * https://issues.scala-lang.org/browse/SI-8425
+    // * https://issues.scala-lang.org/browse/SI-8533
+    val tValueName = newTermName(c.fresh() + "0")
     val tValue = q"val $tValueName = $wrappedT"
 
     val modification = modify_impl_withObjTree(c)(path, Ident(tValueName))
@@ -105,7 +108,7 @@ object QuicklensMacros {
           val copy = q"$selectCopy($pathEl = $newVal)"
           generateCopies(rootPathEl, tail, copy)
         case FunctorPathElement(functor, method, xargs @ _*) :: tail =>
-          val newRootPathEl = newTermName(c.fresh())
+          val newRootPathEl = newTermName(c.fresh() + "0")
           // combine the selected path with variable args
           val args = generateSelects(newRootPathEl, tail) :: xargs.toList
           val rootPathElParamTree = ValDef(Modifiers(), rootPathEl, TypeTree(), EmptyTree)
@@ -122,8 +125,8 @@ object QuicklensMacros {
     }
 
     // the initial root object (the end-root object can be different if there are .each's on the way)
-    val initialRootPathEl = newTermName(c.fresh())
-    val fn = newTermName(c.fresh()) // the function that modifies the last path element
+    val initialRootPathEl = newTermName(c.fresh() + "0")
+    val fn = newTermName(c.fresh() + "0") // the function that modifies the last path element
 
     val reversePathEls = pathEls.reverse
 
