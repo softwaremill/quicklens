@@ -17,6 +17,11 @@ object TestData {
   val a1dupdup = A1(A2(A3(A4(A5("datadatadatadata")))))
   val a1mod = A1(A2(A3(A4(A5("mod")))))
 
+  case class B1(b2: String, b3: Option[String])
+
+  val b1 = B1("data", Some("data"))
+  val b1dupdup = B1("datadata", Some("datadata"))
+
   case class X1(x2: X2)
   case class X2(x3: Option[X3])
   case class X3(x4: X4)
