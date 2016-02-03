@@ -16,6 +16,16 @@ package object quicklens {
    */
   def modify[T, U](obj: T)(path: T => U): PathModify[T, U] = macro QuicklensMacros.modify_impl[T, U]
 
+  /**
+   * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
+   * via `paths` on the given `obj`.
+   *
+   * All modifications are side-effect free and create copies of the original objects.
+   *
+   * You can use `.each` to traverse options, lists, etc.
+   */
+  def modifyAll[T, U](obj: T)(path1: T => U, paths: (T => U)*): PathModify[T, U] = macro QuicklensMacros.modifyAll_impl[T, U]
+
   implicit class ModifyPimp[T](t: T) {
     /**
      * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
@@ -26,6 +36,16 @@ package object quicklens {
      * You can use `.each` to traverse options, lists, etc.
      */
     def modify[U](path: T => U): PathModify[T, U] = macro QuicklensMacros.modifyPimp_impl[T, U]
+
+    /**
+     * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
+     * via `paths` on the given `obj`.
+     *
+     * All modifications are side-effect free and create copies of the original objects.
+     *
+     * You can use `.each` to traverse options, lists, etc.
+     */
+    def modifyAll[U](path1: T => U, paths: (T => U)*): PathModify[T, U] = macro QuicklensMacros.modifyAllPimp_impl[T, U]
   }
 
   implicit class AbstractPathModifyPimp[T, U](f1: T => PathModify[T, U]) {
