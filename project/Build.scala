@@ -4,7 +4,7 @@ import sbt._
 object BuildSettings {
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     organization  := "com.softwaremill.quicklens",
-    version       := "1.4.2",
+    version       := "1.4.4",
     scalaVersion  := "2.10.6",
     // Sonatype OSS deployment
     publishTo <<= version { (v: String) =>
