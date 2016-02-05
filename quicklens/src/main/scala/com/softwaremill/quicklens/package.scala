@@ -5,6 +5,7 @@ import scala.collection.TraversableLike
 import scala.collection.SeqLike
 import scala.collection.generic.CanBuildFrom
 import scala.language.experimental.macros
+import scala.language.higherKinds
 
 package object quicklens {
   /**
