@@ -36,7 +36,7 @@ object BuildSettings {
     homepage      := Some(new java.net.URL("http://www.softwaremill.com"))
   )
 
-  val scalacSettings = Seq("-deprecation","-feature","-unchecked","-Ybackend:GenBCode")
+  val scalacSettings = Seq("-deprecation","-feature","-unchecked")
 }
 
 object Dependencies {
