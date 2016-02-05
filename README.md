@@ -43,7 +43,7 @@ val person = Person("john", Some("steve"), "smith")
 person.modifyAll(_.firstName, _.middleName.each, _.lastName).using(_.capitalize)
 ````
 
-**Traverse options/lists using .each:**
+**Traverse options/lists/maps using .each:**
 
 ````scala
 import com.softwaremill.quicklens._
@@ -60,7 +60,8 @@ val person = Person(List(
 val p2 = person.modify(_.addresses.each.street.each.name).using(_.toUpperCase)
 ````
 
-`.each` can only be used inside a `modify` and "unwraps" the container (currently supports `List`s and `Option`s).
+`.each` can only be used inside a `modify` and "unwraps" the container (currently supports `List`s, `Option`s and
+`Maps`s - only values are unwrapped for maps).
 You can add support for your own containers by providing an implicit `QuicklensFunctor[C]` with the appropriate
 `C` type parameter.
 
@@ -85,6 +86,24 @@ person.modify(_.addresses.at(2).street.each.name).using(_.toUpperCase)
 
 Similarly to `.each`, `.at` modifies only the element at the given index. If there's no element at that index,
 an `IndexOutOfBoundsException` is thrown.
+
+**Modify specific map elements using .at:**
+
+````scala
+case class Property(value: String)
+
+case class Person(name: String, props: Map[String, Property])
+
+val person = Person(
+  "Joe",
+  Map("Role" -> Property("Programmmer"), "Age" -> Property("45"))
+)
+
+person.modify(_.props.at("Age").value).setTo("45")
+````
+
+Similarly to `.each`, `.at` modifies only the element with the given key. If there's no such element,
+an `NoSuchElementException` is thrown.
 
 **Re-usable modifications (lenses):**
 
