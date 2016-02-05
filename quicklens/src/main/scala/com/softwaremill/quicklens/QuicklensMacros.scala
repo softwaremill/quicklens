@@ -147,7 +147,7 @@ object QuicklensMacros {
         Seq("at", "eachWhere").exists { _.equals(method.toString) }
       }
       def typeSupported(quicklensType: c.Tree) = {
-        Seq("QuicklensEach", "QuicklensAt").exists { quicklensType.toString.endsWith }
+        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt").exists { quicklensType.toString.endsWith }
       }
       tree match {
         case q"$parent.$child" =>
