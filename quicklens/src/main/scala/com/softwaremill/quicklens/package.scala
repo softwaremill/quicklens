@@ -102,7 +102,7 @@ package object quicklens {
     def at(fa: F[T], idx: Int)(f: T => T): F[T]
   }
 
-  implicit class QuicklensMapAt[K, T](t: Map[K, T])(implicit f: QuicklensMapAtFunctor[Map, K, T]) {
+  implicit class QuicklensMapAt[M[KT, TT] <: Map[KT, TT], K, T](t: M[K, T])(implicit f: QuicklensMapAtFunctor[M, K, T]) {
     @compileTimeOnly("at can only be used inside modify")
     def at(idx: K): T = sys.error("")
 
@@ -115,12 +115,12 @@ package object quicklens {
     def each(fa: F[K, T])(f: T => T): F[K, T]
   }
 
-  implicit def mapQuicklensFunctor[K, T] = new QuicklensMapAtFunctor[Map, K, T] {
-    override def at(fa: Map[K, T], key: K)(f: T => T) = {
-      fa.updated(key, f(fa(key)))
+  implicit def mapQuicklensFunctor[M[KT, TT] <: Map[KT, TT], K, T] = new QuicklensMapAtFunctor[M, K, T] {
+    override def at(fa: M[K, T], key: K)(f: T => T) = {
+      fa.updated(key, f(fa(key))).asInstanceOf[M[K, T]]
     }
-    override def each(fa: Map[K, T])(f: (T) => T) = {
-      fa.mapValues(f)
+    override def each(fa: M[K, T])(f: (T) => T) = {
+      fa.mapValues(f).asInstanceOf[M[K, T]]
     }
   }
 
