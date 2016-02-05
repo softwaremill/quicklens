@@ -62,10 +62,10 @@ object QuicklensMacros {
 
     val valueAlias = TermName(c.freshName())
 
-    Block(
-      q"val $valueAlias = $wrappedValue",
-      q"_root_.com.softwaremill.quicklens.PathModify(${Ident(valueAlias)}, $modifications)"
-    )
+    q"""{
+      val $valueAlias = $wrappedValue;
+      _root_.com.softwaremill.quicklens.PathModify(${Ident(valueAlias)}, $modifications)
+     }"""
   }
 
   /**
