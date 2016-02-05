@@ -57,4 +57,11 @@ object TestData {
   val ll1at2at1dup = List(List(A5("d1"), A5("d2")), List(A5("d3"), A5("d4"), A5("d5")), List(A5("d6"), A5("d7d7")))
   val ll1at2eachdup = List(List(A5("d1"), A5("d2")), List(A5("d3"), A5("d4"), A5("d5")), List(A5("d6d6"), A5("d7d7")))
   val ll1eachat1dup = List(List(A5("d1"), A5("d2d2")), List(A5("d3"), A5("d4d4"), A5("d5")), List(A5("d6"), A5("d7d7")))
+
+  case class M2(m3: Map[String, A4])
+
+  val m1 = Map("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K2" -> A4(A5("d3")))
+  val m2 = M2(Map("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K2" -> A4(A5("d3"))))
+  val m1dup = Map("K1" -> A4(A5("d1d1")), "K2" -> A4(A5("d2")), "K2" -> A4(A5("d3")))
+  val m2dup = M2(Map("K1" -> A4(A5("d1d1")), "K2" -> A4(A5("d2")), "K2" -> A4(A5("d3"))))
 }

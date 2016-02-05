@@ -102,6 +102,23 @@ package object quicklens {
     def at(fa: F[T], idx: Int)(f: T => T): F[T]
   }
 
+  implicit class QuicklensMapAt[K, T](t: Map[K, T])(implicit f: QuicklensMapAtFunctor[Map, K, T]) {
+    @compileTimeOnly("at can only be used inside modify")
+    def at(idx: K): T = sys.error("")
+  }
+
+  trait QuicklensMapAtFunctor[F[_, _], K, T] {
+    def at(fa: F[K, T], idx: K)(f: T => T): F[K, T]
+  }
+
+  implicit def mapQuicklensFunctor[K, T] = new QuicklensMapAtFunctor[Map, K, T] {
+    override def at(fa: Map[K, T], key: K)(f: T => T) = {
+      fa.updated(key, f(fa(key)))
+    }
+  }
+
+
+
   implicit def seqQuicklensFunctor[F[_], T](implicit cbf: CanBuildFrom[F[T], T, F[T]], ev: F[T] => SeqLike[T, F[T]]) =
     new QuicklensAtFunctor[F, T] {
       override def at(fa: F[T], idx: Int)(f: T => T) = {
