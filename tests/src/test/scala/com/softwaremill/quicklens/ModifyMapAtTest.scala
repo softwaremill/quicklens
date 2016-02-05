@@ -14,6 +14,11 @@ class ModifyMapAtTest extends FlatSpec with ShouldMatchers {
     modify(m2)(_.m3.at("K1").a5.name).using(duplicate) should be(m2dup)
   }
 
+  it should "modify a non-nested map using each" in {
+    modify(m1)(_.each.a5.name).using(duplicate) should be(m1dupEach)
+  }
+
+
   it should "throw an exception if there's no such element" in {
     an[NoSuchElementException] should be thrownBy { modify(m1)(_.at("K0").a5.name).using(duplicate) }
   }
