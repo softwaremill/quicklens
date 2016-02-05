@@ -35,6 +35,8 @@ object BuildSettings {
     licenses      := ("Apache2", new java.net.URL("http://www.apache.org/licenses/LICENSE-2.0.txt")) :: Nil,
     homepage      := Some(new java.net.URL("http://www.softwaremill.com"))
   )
+
+  val scalacSettings = Seq("-deprecation","-feature","-unchecked","-Ybackend:GenBCode")
 }
 
 object Dependencies {
@@ -55,6 +57,7 @@ object QuicklensBuild extends Build {
     settings(
       buildSettings ++ Seq(
         name := "quicklens",
+        scalacOptions ++= scalacSettings,
         libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-reflect" % _)): _*
     )
 
@@ -67,6 +70,7 @@ object QuicklensBuild extends Build {
     settings = buildSettings ++ Seq(
       publishArtifact := false,
       libraryDependencies ++= Seq(scalatest),
+      scalacOptions ++= scalacSettings,
       libraryDependencies <+= (scalaVersion)("org.scala-lang" % "scala-compiler" % _ % "test"),
       // Otherwise when running tests in sbt, the macro is not visible
       // (both macro and usages are compiled in the same compiler run)
