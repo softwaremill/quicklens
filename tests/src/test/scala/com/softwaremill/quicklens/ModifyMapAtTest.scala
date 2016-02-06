@@ -10,7 +10,7 @@ class ModifyMapAtTest extends FlatSpec with ShouldMatchers {
   }
 
   it should "modify a non-nested sorted map with case class item" in {
-    modify(ms1)(_.at("K1").a5.name).using(duplicate) should be(ms1dup)
+    modify(ms1)(_.at("K1").a5.name).using(duplicate) should be(m1dup)
   }
 
   it should "modify a nested map using at" in {

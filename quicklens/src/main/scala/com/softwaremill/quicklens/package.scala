@@ -115,12 +115,14 @@ package object quicklens {
     def each(fa: F[K, T])(f: T => T): F[K, T]
   }
 
-  implicit def mapQuicklensFunctor[M[KT, TT] <: Map[KT, TT], K, T] = new QuicklensMapAtFunctor[M, K, T] {
+  implicit def mapQuicklensFunctor[M[KT, TT] <: Map[KT, TT], K, T](implicit cbf: CanBuildFrom[M[K, T], (K, T), M[K, T]]): QuicklensMapAtFunctor[M, K, T] = new QuicklensMapAtFunctor[M, K, T] {
     override def at(fa: M[K, T], key: K)(f: T => T) = {
       fa.updated(key, f(fa(key))).asInstanceOf[M[K, T]]
     }
     override def each(fa: M[K, T])(f: (T) => T) = {
-      fa.mapValues(f).asInstanceOf[M[K, T]]
+      val builder = cbf(fa)
+      fa.foreach { case(k, t) => builder += k -> f(t) }
+      builder.result
     }
   }
 
