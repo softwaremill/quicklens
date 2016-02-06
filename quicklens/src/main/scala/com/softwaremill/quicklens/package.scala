@@ -1,7 +1,5 @@
 package com.softwaremill
 
-import java.util.NoSuchElementException
-
 import scala.annotation.compileTimeOnly
 import scala.collection.TraversableLike
 import scala.collection.SeqLike
@@ -129,12 +127,7 @@ package object quicklens {
   implicit def seqQuicklensFunctor[F[_], T](implicit cbf: CanBuildFrom[F[T], T, F[T]], ev: F[T] => SeqLike[T, F[T]]) =
     new QuicklensAtFunctor[F, T] {
       override def at(fa: F[T], idx: Int)(f: T => T) = {
-        try {
-          val (prefix, tail) = fa.splitAt(idx)
-          prefix ++ (f(tail.head) +: tail.tail)
-        } catch {
-          case xe: NoSuchElementException => throw new IndexOutOfBoundsException(xe.getMessage)
-        }
+        fa.updated(idx, f(fa(idx)))
       }
     }
 }
