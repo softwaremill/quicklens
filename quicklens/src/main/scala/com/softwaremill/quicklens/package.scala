@@ -124,26 +124,10 @@ package object quicklens {
     }
   }
 
-
-
   implicit def seqQuicklensFunctor[F[_], T](implicit cbf: CanBuildFrom[F[T], T, F[T]], ev: F[T] => SeqLike[T, F[T]]) =
     new QuicklensAtFunctor[F, T] {
       override def at(fa: F[T], idx: Int)(f: T => T) = {
-        val builder = cbf(fa)
-
-        if (idx >= fa.length) {
-          throw new IndexOutOfBoundsException(idx.toString)
-        }
-
-        var i = 0
-        fa.foreach { e =>
-          if (i == idx) builder += f(fa(idx))
-          else builder += fa(i)
-
-          i += 1
-        }
-
-        builder.result
+        fa.updated(idx, f(fa(idx)))
       }
     }
 }
