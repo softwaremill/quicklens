@@ -65,4 +65,7 @@ object TestData {
   val m1dup = Map("K1" -> A4(A5("d1d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3")))
   val m1dupEach = Map("K1" -> A4(A5("d1d1")), "K2" -> A4(A5("d2d2")), "K3" -> A4(A5("d3d3")))
   val m2dup = M2(Map("K1" -> A4(A5("d1d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3"))))
+  val ms1 = collection.immutable.SortedMap("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3")))
+  val mh1 = collection.immutable.HashMap("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3")))
+  val ml1 = collection.immutable.ListMap("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3")))
 }
