@@ -1,9 +1,9 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData._
-import org.scalatest.{FlatSpec, ShouldMatchers}
+import org.scalatest.{FlatSpec, Matchers}
 
-class ModifyEachWhereTest extends FlatSpec with ShouldMatchers {
+class ModifyEachWhereTest extends FlatSpec with Matchers {
   it should "modify a single-nested optional case class field only if the condition returns true" in {
     modify(x4)(_.x5.eachWhere(_ => true).name).using(duplicate) should be (x4dup)
     modify(x4)(_.x5.eachWhere(_ => false).name).using(duplicate) should be (x4)

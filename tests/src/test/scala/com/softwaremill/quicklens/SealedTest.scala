@@ -45,7 +45,7 @@ object SealedTestData {
   val juniorPets = List[Pet](Fish("Finn, Jr."), Cat("Catia, Jr."), Dog("Douglas, Jr."))
 }
 
-class SealedTest extends FlatSpec with ShouldMatchers {
+class SealedTest extends FlatSpec with Matchers {
   import SealedTestData._
 
   it should "modify a field in a sealed trait" in {

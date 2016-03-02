@@ -1,9 +1,9 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData._
-import org.scalatest.{ FlatSpec, ShouldMatchers }
+import org.scalatest.{ FlatSpec, Matchers }
 
-class ModifyMapAtTest extends FlatSpec with ShouldMatchers {
+class ModifyMapAtTest extends FlatSpec with Matchers {
 
   it should "modify a non-nested map with case class item" in {
     modify(m1)(_.at("K1").a5.name).using(duplicate) should be(m1dup)

@@ -1,9 +1,9 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData._
-import org.scalatest.{FlatSpec, ShouldMatchers}
+import org.scalatest.{Matchers, FlatSpec}
 
-class LensTest extends FlatSpec with ShouldMatchers {
+class LensTest extends FlatSpec with Matchers {
   it should "create reusable lens of the given type" in {
     val lens = modify(_: A1)(_.a2.a3.a4.a5.name)
 

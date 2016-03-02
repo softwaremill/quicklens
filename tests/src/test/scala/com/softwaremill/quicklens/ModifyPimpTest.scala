@@ -1,9 +1,9 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData._
-import org.scalatest.{FlatSpec, ShouldMatchers}
+import org.scalatest.{FlatSpec, Matchers}
 
-class ModifyPimpTest extends FlatSpec with ShouldMatchers {
+class ModifyPimpTest extends FlatSpec with Matchers {
   it should "modify a field once" in {
     a1.modify(_.a2.a3.a4.a5.name).using(duplicate) should be (a1dup)
   }
