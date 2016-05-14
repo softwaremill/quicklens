@@ -6,7 +6,7 @@ import sbt._
 object BuildSettings {
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     organization  := "com.softwaremill.quicklens",
-    version       := "1.4.6",
+    version       := "1.4.7",
     scalaVersion  := "2.11.8",
     crossScalaVersions := Seq("2.11.8", "2.12.0-M3"),
     // Sonatype OSS deployment
