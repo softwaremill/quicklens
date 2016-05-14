@@ -105,6 +105,23 @@ person.modify(_.props.at("Age").value).setTo("45")
 Similarly to `.each`, `.at` modifies only the element with the given key. If there's no such element,
 an `NoSuchElementException` is thrown.
 
+**Modify fields when they are of a certain subtype:**
+
+```scala
+trait Animal
+case class Dog(age: Int) extends Animal
+case class Cat(ages: List[Int]) extends Animal
+
+case class Zoo(animals: List[Animal])
+
+val zoo = Zoo(List(Dog(4), Cat(List(3, 12, 13))))
+
+val olderZoo = zoo.modifyAll(
+  _.animals.each.when[Dog].age,
+  _.animals.each.when[Cat].ages.at(0)
+).using(_ + 1)
+```
+
 **Re-usable modifications (lenses):**
 
 ````scala
