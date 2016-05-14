@@ -132,4 +132,9 @@ package object quicklens {
         fa.updated(idx, f(fa(idx)))
       }
     }
+
+  implicit class QuicklensWhen[A](value: A) {
+    @compileTimeOnly("when can only be used inside modify")
+    def when[B <: A]: B = sys.error("")
+  }
 }

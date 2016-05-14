@@ -106,6 +106,7 @@ object QuicklensMacros {
 
     sealed trait PathElement
     case class TermPathElement(term: c.TermName, access: PathAccess, xargs: c.Tree*) extends PathElement
+    case class SubtypePathElement(subtype: c.Symbol) extends PathElement
     case class FunctorPathElement(functor: c.Tree, method: c.TermName, xargs: c.Tree*) extends PathElement
 
     /**
@@ -147,13 +148,15 @@ object QuicklensMacros {
         Seq("at", "eachWhere").exists { _.equals(method.toString) }
       }
       def typeSupported(quicklensType: c.Tree) = {
-        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt").exists { quicklensType.toString.endsWith }
+        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt", "QuicklensWhen").exists { quicklensType.toString.endsWith }
       }
       tree match {
         case q"$parent.$child" =>
           val access = determinePathAccess(parent.tpe.typeSymbol)
           collectPathElements(parent, TermPathElement(child, access) :: acc)
-        case q"$parent.$method(..$xargs)" if methodSupported(method) => 
+        case q"$tpname[..$_]($parent).when[$tp]" if typeSupported(tpname) =>
+          collectPathElements(parent, SubtypePathElement(tp.tpe.typeSymbol) :: acc)
+        case q"$parent.$method(..$xargs)" if methodSupported(method) =>
           collectPathElements(parent, TermPathElement(method, DirectPathAccess, xargs:_*) :: acc)
         case q"$tpname[..$_]($t)($f)" if typeSupported(tpname) =>
           val newAcc = acc match {
@@ -176,6 +179,7 @@ object QuicklensMacros {
         els match {
           case Nil => result
           case TermPathElement(term, _) :: tail => terms(tail, term :: result)
+          case SubtypePathElement(_) :: _ => result
           case FunctorPathElement(_, _, _*) :: _ => result
         }
       }
@@ -225,6 +229,16 @@ object QuicklensMacros {
             q"$currVal.copy($pathEl = $newVal)"
           }
           generateCopies(rootPathEl, tail, copy)
+        case SubtypePathElement(subtype) :: tail =>
+          val newRootPathEl = TermName(c.freshName())
+          val intactPathEl = TermName(c.freshName())
+          val selectCurrVal = generateSelects(newRootPathEl, tail)
+          val cases = Seq(
+            cq"$rootPathEl: $subtype => $newVal",
+            cq"$intactPathEl => ${Ident(intactPathEl)}"
+          )
+          val modifySubtype = q"$selectCurrVal match { case ..$cases }"
+          generateCopies(newRootPathEl, tail, modifySubtype)
         case FunctorPathElement(functor, method, xargs @ _*) :: tail =>
           val newRootPathEl = TermName(c.freshName())
           // combine the selected path with variable args
