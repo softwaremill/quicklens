@@ -41,7 +41,7 @@ object BuildSettings {
 }
 
 object Dependencies {
-  val scalatest     = "org.scalatest" %% "scalatest"  % "3.0.0-M12"       % "test"
+  val scalatest     = "org.scalatest" %% "scalatest"  % "3.0.0-M15"       % "test"
 }
 
 object QuicklensBuild extends Build {
