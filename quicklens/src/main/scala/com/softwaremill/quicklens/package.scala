@@ -57,10 +57,29 @@ package object quicklens {
      */
     def using(mod: U => U): T = doModify(obj, mod)
     /**
+      * Transform the value of the field(s) using the given function, if the condition is true. Otherwise, returns the
+      * original object unchanged.
+      * @return A copy of the root object with the (deeply nested) field(s) modified, if `condition` is true.
+      */
+    def usingIf(condition: Boolean)(mod: U => U): T = if (condition) doModify(obj, mod) else obj
+    /**
      * Set the value of the field(s) to a new value.
      * @return A copy of the root object with the (deeply nested) field(s) set to the new value.
      */
     def setTo(v: U): T = doModify(obj, _ => v)
+    /**
+      * Set the value of the field(s) to a new value, if it is defined. Otherwise, returns the original object
+      * unchanged.
+      * @return A copy of the root object with the (deeply nested) field(s) set to the new value, if it is defined.
+      */
+    def setToIfDefined(v: Option[U]): T = v.fold(obj)(setTo)
+    /**
+      * Set the value of the field(s) to a new value, if the condition is true. Otherwise, returns the original object
+      * unchanged.
+      * @return A copy of the root object with the (deeply nested) field(s) set to the new value, if `condition` is
+      *         true.
+      */
+    def setToIf(condition: Boolean)(v: => U): T = if (condition) setTo(v) else obj
   }
 
   implicit class AbstractPathModifyPimp[T, U](f1: T => PathModify[T, U]) {

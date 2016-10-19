@@ -15,4 +15,12 @@ class ModifySimpleTest extends FlatSpec with Matchers {
   it should "modify several fields" in {
     modifyAll(b1)(_.b2, _.b3.each).using(duplicate) should be (b1dupdup)
   }
+
+  it should "modify a case class field if the condition is true" in {
+    modify(a5)(_.name).usingIf(true)(duplicate) should be (a5dup)
+  }
+
+  it should "leave a case class unchanged if the condition is flase" in {
+    modify(a5)(_.name).usingIf(false)(duplicate) should be (a5)
+  }
 }

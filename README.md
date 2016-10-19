@@ -31,6 +31,13 @@ person
   .modify(_.age).using(_ - 1)
 ````
 
+**Modify conditionally:**
+
+````scala
+person.modify(_.address.street.name).setToIfDefined(Some("3 00 Ln."))
+person.modify(_.address.street.name).setToIf(shouldChangeAddress)("3 00 Ln.")
+````
+
 **Modify several fields in one go:**
 
 ````scala
@@ -183,7 +190,7 @@ Read [the blog](http://www.warski.org/blog/2015/02/quicklens-modify-deeply-neste
 Available in Maven Central:
 
 ````scala
-val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.4.7"
+val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.4.8"
 ````
 
 Also available for [Scala.js](http://www.scala-js.org)!
