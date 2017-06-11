@@ -129,7 +129,7 @@ val olderZoo = zoo.modifyAll(
 ).using(_ + 1)
 ```
 
-This is also known as a *prism*, see e.g. [here](http://julien-truffaut.github.io/Monocle//tut/prism.html).
+This is also known as a *prism*, see e.g. [here](http://julien-truffaut.github.io/Monocle/optics/prism.html).
 
 **Re-usable modifications (lenses):**
 
