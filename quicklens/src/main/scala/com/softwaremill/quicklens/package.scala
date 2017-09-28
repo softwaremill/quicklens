@@ -8,6 +8,10 @@ import scala.language.experimental.macros
 import scala.language.higherKinds
 
 package object quicklens {
+
+  private def canOnlyBeUsedInsideModify(method: String) =
+    s"$method can only be used inside modify"
+
   /**
    * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
    * via `path` on the given `obj`.
@@ -89,10 +93,10 @@ package object quicklens {
   }
 
   implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T]) {
-    @compileTimeOnly("each can only be used inside modify")
+    @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: T = sys.error("")
 
-    @compileTimeOnly("eachWhere can only be used inside modify")
+    @compileTimeOnly(canOnlyBeUsedInsideModify("eachWhere"))
     def eachWhere(p: T => Boolean): T = sys.error("")
   }
 
@@ -113,7 +117,7 @@ package object quicklens {
     }
 
   implicit class QuicklensAt[F[_], T](t: F[T])(implicit f: QuicklensAtFunctor[F, T]) {
-    @compileTimeOnly("at can only be used inside modify")
+    @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: Int): T = sys.error("")
   }
 
@@ -122,10 +126,10 @@ package object quicklens {
   }
 
   implicit class QuicklensMapAt[M[KT, TT] <: Map[KT, TT], K, T](t: M[K, T])(implicit f: QuicklensMapAtFunctor[M, K, T]) {
-    @compileTimeOnly("at can only be used inside modify")
+    @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: K): T = sys.error("")
 
-    @compileTimeOnly("each can only be used inside modify")
+    @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: T = sys.error("")
   }
 
@@ -153,7 +157,25 @@ package object quicklens {
     }
 
   implicit class QuicklensWhen[A](value: A) {
-    @compileTimeOnly("when can only be used inside modify")
+    @compileTimeOnly(canOnlyBeUsedInsideModify("when"))
     def when[B <: A]: B = sys.error("")
   }
+
+  implicit class QuicklensEither[L, R](e: Either[L, R])
+                                      (implicit f: EitherQuicklensFunctor[L, R]) {
+    @compileTimeOnly(canOnlyBeUsedInsideModify("eachLeft"))
+    def eachLeft: L = sys.error("")
+
+    @compileTimeOnly(canOnlyBeUsedInsideModify("eachRight"))
+    def eachRight: R = sys.error("")
+  }
+
+  class EitherQuicklensFunctor[L, R] {
+    def eachLeft(e: Either[L, R])(f: L => L): Either[L, R] = e.left.map(f)
+
+    def eachRight(e: Either[L, R])(f: R => R): Either[L, R] = e.right.map(f)
+  }
+
+  implicit def eitherQuicklensFunctor[L, R]: EitherQuicklensFunctor[L, R] =
+    new EitherQuicklensFunctor[L, R]
 }

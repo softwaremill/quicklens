@@ -144,12 +144,11 @@ object QuicklensMacros {
      */
     @tailrec
     def collectPathElements(tree: c.Tree, acc: List[PathElement]): List[PathElement] = {
-      def methodSupported(method: TermName) = {
-        Seq("at", "eachWhere").exists { _.equals(method.toString) }
-      }
-      def typeSupported(quicklensType: c.Tree) = {
-        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt", "QuicklensWhen").exists { quicklensType.toString.endsWith }
-      }
+      def methodSupported(method: TermName) =
+        Seq("at", "eachWhere").contains(method.toString)
+      def typeSupported(quicklensType: c.Tree) =
+        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt", "QuicklensWhen", "QuicklensEither")
+          .exists(quicklensType.toString.endsWith)
       tree match {
         case q"$parent.$child" =>
           val access = determinePathAccess(parent.tpe.typeSymbol)
@@ -162,7 +161,7 @@ object QuicklensMacros {
           val newAcc = acc match {
             // replace the term controlled by quicklens
             case TermPathElement(term, _, xargs @ _*) :: rest => FunctorPathElement(f, term, xargs: _*) :: rest
-            case pathEl :: rest => c.abort(c.enclosingPosition, s"Invalid use of path element $pathEl. $ShapeInfo, got: ${path.tree}")
+            case pathEl :: _ => c.abort(c.enclosingPosition, s"Invalid use of path element $pathEl. $ShapeInfo, got: ${path.tree}")
           }
           collectPathElements(t, newAcc)
         case t: Ident => acc

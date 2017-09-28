@@ -6,9 +6,9 @@ import sbt._
 object BuildSettings {
   val buildSettings = Defaults.coreDefaultSettings ++ Seq (
     organization  := "com.softwaremill.quicklens",
-    version       := "1.4.8",
-    scalaVersion  := "2.11.8",
-    crossScalaVersions := Seq("2.11.8", "2.12.0"),
+    version       := "1.4.9-SNAPSHOT",
+    scalaVersion  := "2.11.11",
+    crossScalaVersions := Seq("2.11.11", "2.12.3"),
     // Sonatype OSS deployment
     publishTo <<= version { (v: String) =>
       val nexus = "https://oss.sonatype.org/"
@@ -41,7 +41,7 @@ object BuildSettings {
 }
 
 object Dependencies {
-  val scalatest     = "org.scalatest" %% "scalatest"  % "3.0.0"       % "test"
+  val scalatest     = "org.scalatest" %% "scalatest"  % "3.0.4"       % "test"
 }
 
 object QuicklensBuild extends Build {
