@@ -161,8 +161,8 @@ package object quicklens {
     def when[B <: A]: B = sys.error("")
   }
 
-  implicit class QuicklensEither[L, R](e: Either[L, R])
-                                      (implicit f: EitherQuicklensFunctor[L, R]) {
+  implicit class QuicklensEither[T[_, _], L, R](e: T[L, R])
+                                      (implicit f: QuicklensEitherFunctor[T, L, R]) {
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachLeft"))
     def eachLeft: L = sys.error("")
 
@@ -170,12 +170,14 @@ package object quicklens {
     def eachRight: R = sys.error("")
   }
 
-  class EitherQuicklensFunctor[L, R] {
-    def eachLeft(e: Either[L, R])(f: L => L): Either[L, R] = e.left.map(f)
-
-    def eachRight(e: Either[L, R])(f: R => R): Either[L, R] = e.right.map(f)
+  trait QuicklensEitherFunctor[T[_, _], L, R] {
+    def eachLeft(e: T[L, R])(f: L => L): T[L, R]
+    def eachRight(e: T[L, R])(f: R => R): T[L, R]
   }
 
-  implicit def eitherQuicklensFunctor[L, R]: EitherQuicklensFunctor[L, R] =
-    new EitherQuicklensFunctor[L, R]
+  implicit def eitherQuicklensFunctor[T[_, _], L, R]: QuicklensEitherFunctor[Either, L, R] =
+    new QuicklensEitherFunctor[Either, L, R] {
+      override def eachLeft(e: Either[L, R])(f: (L) => L) = e.left.map(f)
+      override def eachRight(e: Either[L, R])(f: (R) => R) = e.right.map(f)
+    }
 }
