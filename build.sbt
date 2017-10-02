@@ -3,7 +3,6 @@ import org.scalajs.sbtplugin.cross.CrossType
 
 val buildSettings = Defaults.coreDefaultSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
-  version := "1.4.9-SNAPSHOT",
   scalaVersion := "2.11.11",
   crossScalaVersions := Seq(scalaVersion.value, "2.12.3"),
   scalacOptions := Seq("-deprecation", "-feature", "-unchecked"),
