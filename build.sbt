@@ -38,7 +38,8 @@ val buildSettings = Defaults.coreDefaultSettings ++ Seq(
   // sbt-release
   releaseCrossBuild := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  releaseIgnoreUntrackedFiles := true
+  releaseIgnoreUntrackedFiles := true,
+  releaseProcess := QuicklensRelease.steps
 )
 
 lazy val root =
