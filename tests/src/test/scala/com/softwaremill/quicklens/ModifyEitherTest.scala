@@ -8,7 +8,8 @@ case class Aged(age: Int)
 
 case class Eithers(e: Either[Named, Aged])
 
-case class MoreEithers(e1: Either[Eithers, MoreEithers], e2: Either[Eithers, MoreEithers])
+case class MoreEithers(e1: Either[Eithers, MoreEithers],
+                       e2: Either[Eithers, MoreEithers])
 
 class ModifyEitherTest extends FlatSpec with Matchers {
 
@@ -22,7 +23,8 @@ class ModifyEitherTest extends FlatSpec with Matchers {
 
   it should "modify a single-nested left case class field (pimped)" in {
     Eithers(Left(Named("boo")))
-      .modify(_.e.eachLeft.name).setTo("moo") should be(
+      .modify(_.e.eachLeft.name)
+      .setTo("moo") should be(
       Eithers(Left(Named("moo")))
     )
   }
@@ -37,7 +39,8 @@ class ModifyEitherTest extends FlatSpec with Matchers {
 
   it should "modify a single-nested right case class field (pimped)" in {
     Eithers(Right(Aged(23)))
-      .modify(_.e.eachRight.age).setTo(32) should be(
+      .modify(_.e.eachRight.age)
+      .setTo(32) should be(
       Eithers(Right(Aged(32)))
     )
   }
@@ -45,20 +48,20 @@ class ModifyEitherTest extends FlatSpec with Matchers {
   it should "modify multiple deeply-nested either case class fields" in {
 
     modify(
-      MoreEithers(
-        e1 = Right(MoreEithers(
-          e1 = Left(Eithers(Right(Aged(23)))),
-          e2 = Left(Eithers(Left(Named("boo"))))
-        )),
-        e2 = Left(Eithers(Left(Named("boo")))))
-    )(
-      _.e1.eachRight.e2.eachLeft.e.eachLeft.name).using(_.toUpperCase) should be(
-      MoreEithers(
-        e1 = Right(MoreEithers(
-          e1 = Left(Eithers(Right(Aged(23)))),
-          e2 = Left(Eithers(Left(Named("BOO"))))
-        )),
-        e2 = Left(Eithers(Left(Named("boo")))))
+      MoreEithers(e1 = Right(
+                    MoreEithers(
+                      e1 = Left(Eithers(Right(Aged(23)))),
+                      e2 = Left(Eithers(Left(Named("boo"))))
+                    )),
+                  e2 = Left(Eithers(Left(Named("boo")))))
+    )(_.e1.eachRight.e2.eachLeft.e.eachLeft.name)
+      .using(_.toUpperCase) should be(
+      MoreEithers(e1 = Right(
+                    MoreEithers(
+                      e1 = Left(Eithers(Right(Aged(23)))),
+                      e2 = Left(Eithers(Left(Named("BOO"))))
+                    )),
+                  e2 = Left(Eithers(Left(Named("boo")))))
     )
   }
 
@@ -79,10 +82,12 @@ class ModifyEitherTest extends FlatSpec with Matchers {
   }
 
   it should "allow .eachLeft at then end" in {
-    modify(Left("boo"): Either[String, Int])(_.eachLeft).using(_.toUpperCase) should be(Left("BOO"))
+    modify(Left("boo"): Either[String, Int])(_.eachLeft)
+      .using(_.toUpperCase) should be(Left("BOO"))
   }
 
   it should "allow .eachRight at then end" in {
-    modify(Right(23): Either[String, Int])(_.eachRight).using(_ + 3) should be(Right(26))
+    modify(Right(23): Either[String, Int])(_.eachRight).using(_ + 3) should be(
+      Right(26))
   }
 }

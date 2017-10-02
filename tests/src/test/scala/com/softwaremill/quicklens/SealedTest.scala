@@ -4,9 +4,9 @@ import com.softwaremill.quicklens.TestData.duplicate
 import org.scalatest._
 
 /**
- * This test data is in the same file as the test to ensure correct compilation order.
- * See https://issues.scala-lang.org/browse/SI-7046.
- */
+  * This test data is in the same file as the test to ensure correct compilation order.
+  * See https://issues.scala-lang.org/browse/SI-7046.
+  */
 object SealedTestData {
   case class G(p1: Option[P1])
   sealed trait P1 {
@@ -42,29 +42,30 @@ object SealedTestData {
   case class Dog(name: String) extends LeggedPet
 
   val pets = List[Pet](Fish("Finn"), Cat("Catia"), Dog("Douglas"))
-  val juniorPets = List[Pet](Fish("Finn, Jr."), Cat("Catia, Jr."), Dog("Douglas, Jr."))
+  val juniorPets =
+    List[Pet](Fish("Finn, Jr."), Cat("Catia, Jr."), Dog("Douglas, Jr."))
 }
 
 class SealedTest extends FlatSpec with Matchers {
   import SealedTestData._
 
   it should "modify a field in a sealed trait" in {
-    modify(p1)(_.x).using(duplicate) should be (p1dup)
+    modify(p1)(_.x).using(duplicate) should be(p1dup)
   }
 
   it should "modify a field in a sealed trait through a Functor" in {
-    modify(g1)(_.p1.each.x).using(duplicate) should be (g1dup)
+    modify(g1)(_.p1.each.x).using(duplicate) should be(g1dup)
   }
 
   it should "modify a Functor field in a sealed trait" in {
-    modify(g1)(_.p1.each.f.each).using(duplicate) should be (g1eachdup)
+    modify(g1)(_.p1.each.f.each).using(duplicate) should be(g1eachdup)
   }
 
   it should "modify a field in a hierarchy of sealed traits" in {
-    modify(p2)(_.x).using(duplicate) should be (p2dup)
+    modify(p2)(_.x).using(duplicate) should be(p2dup)
   }
 
   it should "modify a list of pets from the example" in {
-    modify(pets)(_.each.name).using(_ + ", Jr.") should be (juniorPets)
+    modify(pets)(_.each.name).using(_ + ", Jr.") should be(juniorPets)
   }
 }

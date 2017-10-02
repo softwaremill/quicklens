@@ -5,22 +5,22 @@ import TestData._
 
 class ModifySimpleTest extends FlatSpec with Matchers {
   it should "modify a single-nested case class field" in {
-    modify(a5)(_.name).using(duplicate) should be (a5dup)
+    modify(a5)(_.name).using(duplicate) should be(a5dup)
   }
 
   it should "modify a deeply-nested case class field" in {
-    modify(a1)(_.a2.a3.a4.a5.name).using(duplicate) should be (a1dup)
+    modify(a1)(_.a2.a3.a4.a5.name).using(duplicate) should be(a1dup)
   }
 
   it should "modify several fields" in {
-    modifyAll(b1)(_.b2, _.b3.each).using(duplicate) should be (b1dupdup)
+    modifyAll(b1)(_.b2, _.b3.each).using(duplicate) should be(b1dupdup)
   }
 
   it should "modify a case class field if the condition is true" in {
-    modify(a5)(_.name).usingIf(true)(duplicate) should be (a5dup)
+    modify(a5)(_.name).usingIf(true)(duplicate) should be(a5dup)
   }
 
   it should "leave a case class unchanged if the condition is flase" in {
-    modify(a5)(_.name).usingIf(false)(duplicate) should be (a5)
+    modify(a5)(_.name).usingIf(false)(duplicate) should be(a5)
   }
 }

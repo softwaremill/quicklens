@@ -19,15 +19,21 @@ val buildSettings = Defaults.coreDefaultSettings ++ Seq(
   credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
   publishMavenStyle := true,
   publishArtifact in Test := false,
-  pomIncludeRepository := { _ => false },
+  pomIncludeRepository := { _ =>
+    false
+  },
   developers := List(
-    Developer("adamw", "Adam Warski", "adam@warski.org", url("http://www.warski.org"))
+    Developer("adamw",
+              "Adam Warski",
+              "adam@warski.org",
+              url("http://www.warski.org"))
   ),
   scmInfo := Some(
     ScmInfo(browseUrl = url("https://github.com/adamw/quicklens"),
-      connection = "scm:git:git@github.com:adamw/quicklens.git")
+            connection = "scm:git:git@github.com:adamw/quicklens.git")
   ),
-  licenses := Seq("Apache2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  licenses := Seq(
+    "Apache2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("http://www.softwaremill.com")),
   sonatypeProfileName := "com.softwaremill",
   // sbt-release
@@ -45,22 +51,22 @@ lazy val quicklens =
   (crossProject.crossType(CrossType.Pure) in file("quicklens"))
     .settings(buildSettings ++ Seq(
       name := "quicklens",
-      libraryDependencies += ("org.scala-lang" % "scala-reflect" % scalaVersion.value))
-    )
+      libraryDependencies += ("org.scala-lang" % "scala-reflect" % scalaVersion.value)))
 
 lazy val quicklensJVM = quicklens.jvm
 lazy val quicklensJS = quicklens.js
 
 lazy val tests: Project =
   (project in file("tests"))
-    .settings(buildSettings ++
-      Seq(
-        publishArtifact := false,
-        libraryDependencies ++= Seq(
-          "org.scalatest" %% "scalatest" % "3.0.4" % "test",
-          "org.scala-lang" % "scala-compiler" % scalaVersion.value % "test"),
-        // Otherwise when running tests in sbt, the macro is not visible
-        // (both macro and usages are compiled in the same compiler run)
-        fork in Test := true)
-    )
+    .settings(
+      buildSettings ++
+        Seq(
+          publishArtifact := false,
+          libraryDependencies ++= Seq(
+            "org.scalatest" %% "scalatest" % "3.0.4" % "test",
+            "org.scala-lang" % "scala-compiler" % scalaVersion.value % "test"),
+          // Otherwise when running tests in sbt, the macro is not visible
+          // (both macro and usages are compiled in the same compiler run)
+          fork in Test := true
+        ))
     .dependsOn(quicklensJVM)

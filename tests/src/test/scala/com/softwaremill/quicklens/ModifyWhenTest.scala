@@ -34,9 +34,11 @@ class ModifyWhenTest extends FlatSpec with Matchers {
   }
 
   it should "modify a field in a subtype through a Functor" in {
-    zoo.modifyAll(
-      _.animals.each.when[Dog].age,
-      _.animals.each.when[Cat].ages.at(0)
-    ).using(_ + 1) shouldEqual olderZoo
+    zoo
+      .modifyAll(
+        _.animals.each.when[Dog].age,
+        _.animals.each.when[Cat].ages.at(0)
+      )
+      .using(_ + 1) shouldEqual olderZoo
   }
 }
