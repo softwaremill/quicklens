@@ -7,6 +7,8 @@ val buildSettings = Defaults.coreDefaultSettings ++ Seq(
   scalaVersion := "2.11.11",
   crossScalaVersions := Seq(scalaVersion.value, "2.12.3"),
   scalacOptions := Seq("-deprecation", "-feature", "-unchecked"),
+  scalafmtOnCompile := true,
+  scalafmtVersion := "1.1.0",
   // Sonatype OSS deployment
   publishTo := Some(
     if (isSnapshot.value)
