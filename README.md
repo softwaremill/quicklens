@@ -112,6 +112,19 @@ person.modify(_.props.at("Age").value).setTo("45")
 Similarly to `.each`, `.at` modifies only the element with the given key. If there's no such element,
 an `NoSuchElementException` is thrown.
 
+**Modify Either fields using .eachLeft and eachRight:**
+
+````scala
+case class AuthContext(token: String)
+case class AuthRequest(url: String)
+case class Resource(auth: Either[AuthContext, AuthRequest])
+
+val devResource = Resource(auth = Left(AuthContext("fake"))
+
+val prodResource = devResource.modify(_.auth.eachLeft.token).setTo("real")
+
+````
+
 **Modify fields when they are of a certain subtype:**
 
 ```scala
