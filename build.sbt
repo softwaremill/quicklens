@@ -26,7 +26,12 @@ val buildSettings = Defaults.coreDefaultSettings ++ Seq(
       connection = "scm:git:git@github.com:adamw/quicklens.git")
   ),
   licenses := Seq("Apache2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
-  homepage := Some(url("http://www.softwaremill.com"))
+  homepage := Some(url("http://www.softwaremill.com")),
+  sonatypeProfileName := "com.softwaremill",
+  // sbt-release
+  releaseCrossBuild := true,
+  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  releaseIgnoreUntrackedFiles := true
 )
 
 lazy val root =
