@@ -1,4 +1,4 @@
-addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.20")
+addSbtPlugin("org.scala-js" % "sbt-scalajs" % "0.6.22")
 
 addSbtPlugin("com.lucidchart" % "sbt-scalafmt" % "1.10")
 
