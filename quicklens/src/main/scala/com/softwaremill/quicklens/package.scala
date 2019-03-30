@@ -92,6 +92,61 @@ package object quicklens {
     }
   }
 
+
+  def modify[T]: LensHelper[T] = LensHelper[T]()
+
+  def modifyAll[T]: MultiLensHelper[T] = MultiLensHelper[T]()
+
+  case class LensHelper[T] private() {
+
+    def apply[U](path: T => U): PathLazyModify[T, U] = macro QuicklensMacros.modifyLazy_impl[T, U]
+  }
+
+  case class MultiLensHelper[T] private() {
+
+    def apply[U](path1: T => U, paths: (T => U)*): PathLazyModify[T, U] = macro QuicklensMacros.modifyLazyAll_impl[T, U]
+  }
+
+
+  case class PathLazyModify[T, U](doModify: (T, U => U) => T) {
+
+    self =>
+
+    /**
+      * see [[PathModify.using]]
+      */
+    def using(mod: U => U): T => T = obj => doModify(obj, mod)
+
+    /**
+      * see [[PathModify.usingIf]]
+      */
+    def usingIf(condition: Boolean)(mod: U => U): T => T = obj => if (condition) doModify(obj, mod)
+    else obj
+
+    /**
+      * see [[PathModify.setTo]]
+      */
+    def setTo(v: U): T => T = obj => doModify(obj, _ => v)
+
+    /**
+      * see [[PathModify.setToIfDefined]]
+      */
+    def setToIfDefined(v: Option[U]): T => T = v.fold((obj: T) => obj)(setTo)
+
+    /**
+      * see [[PathModify.setToIf]]
+      */
+    def setToIf(condition: Boolean)(v: => U): T => T = if (condition) setTo(v)
+    else obj => obj
+
+    /**
+      * see [[AbstractPathModifyPimp]]
+      */
+    def andThenModify[V](f2: PathLazyModify[U, V]): PathLazyModify[T, V] =
+      PathLazyModify[T, V]((t, vv) => self.doModify(t, u => f2.doModify(u, vv)))
+  }
+
+
   implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T]) {
     @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: T = sys.error("")
