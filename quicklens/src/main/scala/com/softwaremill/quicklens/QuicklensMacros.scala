@@ -33,6 +33,32 @@ object QuicklensMacros {
   }
 
   /**
+    * modify[A](_.b.c) => a => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
+    */
+  def modifyLazy_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    path: c.Expr[T => U]
+  ): c.Tree = modifyLazyUnwrapped(c)(modificationForPath(c)(path))
+
+  /**
+    * modifyAll[A](_.b.c, _.d.e) => a => new PathMod(a, << chained modifications >>)
+    */
+  def modifyLazyAll_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    path1: c.Expr[T => U],
+    paths: c.Expr[T => U]*
+  ): c.Tree = modifyLazyUnwrapped(c)(modificationsForPaths(c)(path1, paths))
+
+  /**
+    * A helper method for modify_impl and modifyAll_impl.
+    */
+  private def modifyLazyUnwrapped[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
+    modifications: c.Tree
+  ): c.Tree = {
+    import c.universe._
+    q"_root_.com.softwaremill.quicklens.PathLazyModify($modifications)"
+  }
+
+
+  /**
    * a.modify(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
    */
   def modifyPimp_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
