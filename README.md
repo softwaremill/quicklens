@@ -160,6 +160,21 @@ val upperCaseStreetName = modify(_: Person)(_.address.street.name).using(_.toUpp
 
 val p5 = upperCaseStreetName(person)
 ````
+Alternate syntax:
+````scala
+import com.softwaremill.quicklens._
+
+val modifyStreetName = modify[Person](_.address.street.name)
+
+val p3 = modifyStreetName(person).using(_.toUpperCase)
+val p4 = modifyStreetName(anotherPerson).using(_.toLowerCase)
+
+//
+
+val upperCaseStreetName = modify[Person](_.address.street.name).using(_.toUpperCase)
+
+val p5 = upperCaseStreetName(person)
+````
 
 **Composing lenses:**
 
@@ -171,6 +186,16 @@ val modifyStreetName = modify(_: Address)(_.street.name)
 
 val p6 = (modifyAddress andThenModify modifyStreetName)(person).using(_.toUpperCase)
 ````
+or, with alternate syntax:
+````scala
+import com.softwaremill.quicklens._
+
+val modifyAddress = modify[Person](_.address)
+val modifyStreetName = modify[Address](_.street.name)
+
+val p6 = (modifyAddress andThenModify modifyStreetName)(person).using(_.toUpperCase)
+````
+
 
 **Modify nested sealed hierarchies:**
 
