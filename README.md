@@ -166,8 +166,8 @@ import com.softwaremill.quicklens._
 
 val modifyStreetName = modify[Person](_.address.street.name)
 
-val p3 = modifyStreetName(person).using(_.toUpperCase)
-val p4 = modifyStreetName(anotherPerson).using(_.toLowerCase)
+val p3 = modifyStreetName.using(_.toUpperCase)(person)
+val p4 = modifyStreetName.using(_.toLowerCase)(anotherPerson)
 
 //
 
@@ -193,7 +193,7 @@ import com.softwaremill.quicklens._
 val modifyAddress = modify[Person](_.address)
 val modifyStreetName = modify[Address](_.street.name)
 
-val p6 = (modifyAddress andThenModify modifyStreetName)(person).using(_.toUpperCase)
+val p6 = (modifyAddress andThenModify modifyStreetName).using(_.toUpperCase)(person)
 ````
 
 
