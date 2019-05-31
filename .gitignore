@@ -1,5 +1,9 @@
 .idea
 *.iml
 *.ipr
-target
+target/
+project/project
 out
+.js
+.jvm
+.native

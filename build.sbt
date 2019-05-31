@@ -1,10 +1,12 @@
-import org.scalajs.sbtplugin.ScalaJSPlugin.AutoImport.crossProject
-import org.scalajs.sbtplugin.cross.CrossType
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
+
+val scala211 = "2.11.12"
+val scala212 = "2.12.8"
 
 val buildSettings = Defaults.coreDefaultSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
-  scalaVersion := "2.12.8",
-  crossScalaVersions := Seq(scalaVersion.value, "2.11.12"),
+  scalaVersion := scala212,
+  crossScalaVersions := Seq(scalaVersion.value, scala211),
   scalacOptions := Seq("-deprecation", "-feature", "-unchecked"),
   scalafmtOnCompile := true,
   scalafmtVersion := "1.1.0",
@@ -43,30 +45,36 @@ val buildSettings = Defaults.coreDefaultSettings ++ Seq(
 )
 
 lazy val root =
-  (project in file("."))
-    .settings(buildSettings ++ Seq(publishArtifact := false))
-    .aggregate(quicklensJVM, quicklensJS, tests)
+  project
+    .in(file("."))
+    .settings(buildSettings)
+    .settings(publishArtifact := false)
+    .aggregate(quicklensJVM, quicklensJS, quicklensNative, tests)
 
-lazy val quicklens =
-  (crossProject.crossType(CrossType.Pure) in file("quicklens"))
-    .settings(buildSettings ++ Seq(
-      name := "quicklens",
-      libraryDependencies += ("org.scala-lang" % "scala-reflect" % scalaVersion.value)))
+lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
+  .crossType(CrossType.Pure)
+  .settings(buildSettings)
+  .settings(
+    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+    Test / publishArtifact := false,
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-compiler" % scalaVersion.value % Test)
+    // Otherwise when running tests in sbt, the macro is not visible
+    // (both macro and usages are compiled in the same compiler run)
+  )
+  .jvmSettings(
+    Test / fork := true
+  )
+  .platformsSettings(JVMPlatform, JSPlatform)(
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.0.4" % Test
+  )
+  .nativeSettings(
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.0-SNAP10" % Test,
+    scalaVersion := scala211,
+    crossScalaVersions := Seq(scala211, scala212),
+    nativeLinkStubs := true
+  )
 
 lazy val quicklensJVM = quicklens.jvm
 lazy val quicklensJS = quicklens.js
-
-lazy val tests: Project =
-  (project in file("tests"))
-    .settings(
-      buildSettings ++
-        Seq(
-          publishArtifact := false,
-          libraryDependencies ++= Seq(
-            "org.scalatest" %% "scalatest" % "3.0.4" % "test",
-            "org.scala-lang" % "scala-compiler" % scalaVersion.value % "test"),
-          // Otherwise when running tests in sbt, the macro is not visible
-          // (both macro and usages are compiled in the same compiler run)
-          fork in Test := true
-        ))
-    .dependsOn(quicklensJVM)
+lazy val quicklensNative = quicklens.native

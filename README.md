@@ -231,4 +231,4 @@ Available in Maven Central:
 val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.4.12"
 ````
 
-Also available for [Scala.js](http://www.scala-js.org)!
+Also available for [Scala.js](http://www.scala-js.org) and [Scala Native](http://www.scala-native.org)!
