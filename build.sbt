@@ -49,7 +49,7 @@ lazy val root =
     .in(file("."))
     .settings(buildSettings)
     .settings(publishArtifact := false)
-    .aggregate(quicklensJVM, quicklensJS, quicklensNative, tests)
+    .aggregate(quicklensJVM, quicklensJS, quicklensNative)
 
 lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
