@@ -15,10 +15,8 @@ class ModifyEachWhereTest extends FlatSpec with Matchers {
   }
 
   it should "not modify an optional case class field if it is none regardless of the condition" in {
-    modify(x4none)(_.x5.eachWhere(_ => true).name).using(duplicate) should be(
-      x4none)
-    modify(x4none)(_.x5.eachWhere(_ => false).name).using(duplicate) should be(
-      x4none)
+    modify(x4none)(_.x5.eachWhere(_ => true).name).using(duplicate) should be(x4none)
+    modify(x4none)(_.x5.eachWhere(_ => false).name).using(duplicate) should be(x4none)
   }
 
   it should "modify only those list elements where the condition returns true" in {
@@ -27,9 +25,7 @@ class ModifyEachWhereTest extends FlatSpec with Matchers {
   }
 
   it should "allow .each at then end only if the condition returns true" in {
-    modify(z1)(_.name.eachWhere(_.startsWith("d"))).using(duplicate) should be(
-      z1dup)
-    modify(z1)(_.name.eachWhere(_.startsWith("e"))).using(duplicate) should be(
-      z1)
+    modify(z1)(_.name.eachWhere(_.startsWith("d"))).using(duplicate) should be(z1dup)
+    modify(z1)(_.name.eachWhere(_.startsWith("e"))).using(duplicate) should be(z1)
   }
 }

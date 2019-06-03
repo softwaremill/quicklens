@@ -17,8 +17,7 @@ class ModifyEachTest extends FlatSpec with Matchers {
   }
 
   it should "not modify an optional case class field if it is none" in {
-    modify(x1none)(_.x2.x3.each.x4.x5.each.name).using(duplicate) should be(
-      x1none)
+    modify(x1none)(_.x2.x3.each.x4.x5.each.name).using(duplicate) should be(x1none)
     modify(x4none)(_.x5.each.name).using(duplicate) should be(x4none)
   }
 

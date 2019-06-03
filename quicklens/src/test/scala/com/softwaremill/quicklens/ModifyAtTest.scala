@@ -8,8 +8,7 @@ class ModifyAtTest extends FlatSpec with Matchers {
   it should "modify a non-nested list with case class item" in {
     modify(l1)(_.at(2).a4.a5.name).using(duplicate) should be(l1at2dup)
     modify(l1)(_.at(2))
-      .using(a3 => modify(a3)(_.a4.a5.name).using(duplicate)) should be(
-      l1at2dup)
+      .using(a3 => modify(a3)(_.a4.a5.name).using(duplicate)) should be(l1at2dup)
   }
 
   it should "modify a nested list using at" in {
