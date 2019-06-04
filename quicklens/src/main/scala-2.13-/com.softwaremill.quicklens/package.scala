@@ -60,6 +60,7 @@ package object quicklens {
 
     /**
       * Transform the value of the field(s) using the given function.
+      *
       * @return A copy of the root object with the (deeply nested) field(s) modified.
       */
     def using(mod: U => U): T = doModify(obj, mod)
@@ -67,12 +68,14 @@ package object quicklens {
     /**
       * Transform the value of the field(s) using the given function, if the condition is true. Otherwise, returns the
       * original object unchanged.
+      *
       * @return A copy of the root object with the (deeply nested) field(s) modified, if `condition` is true.
       */
     def usingIf(condition: Boolean)(mod: U => U): T = if (condition) doModify(obj, mod) else obj
 
     /**
       * Set the value of the field(s) to a new value.
+      *
       * @return A copy of the root object with the (deeply nested) field(s) set to the new value.
       */
     def setTo(v: U): T = doModify(obj, _ => v)
@@ -80,6 +83,7 @@ package object quicklens {
     /**
       * Set the value of the field(s) to a new value, if it is defined. Otherwise, returns the original object
       * unchanged.
+      *
       * @return A copy of the root object with the (deeply nested) field(s) set to the new value, if it is defined.
       */
     def setToIfDefined(v: Option[U]): T = v.fold(obj)(setTo)
@@ -87,6 +91,7 @@ package object quicklens {
     /**
       * Set the value of the field(s) to a new value, if the condition is true. Otherwise, returns the original object
       * unchanged.
+      *
       * @return A copy of the root object with the (deeply nested) field(s) set to the new value, if `condition` is
       *         true.
       */
@@ -94,7 +99,7 @@ package object quicklens {
   }
 
   implicit class AbstractPathModifyPimp[T, U](f1: T => PathModify[T, U]) {
-    def andThenModify[V](f2: U => PathModify[U, V]): T => PathModify[T, V] = { (t: T) =>
+    def andThenModify[V](f2: U => PathModify[U, V]): T => PathModify[T, V] = { t: T =>
       PathModify[T, V](t, (t, vv) => f1(t).doModify(t, u => f2(u).doModify(u, vv)))
     }
   }
@@ -178,7 +183,7 @@ package object quicklens {
   implicit def traversableQuicklensFunctor[F[_], A](
       implicit cbf: CanBuildFrom[F[A], A, F[A]],
       ev: F[A] => TraversableLike[A, F[A]]
-  ) =
+  ): QuicklensFunctor[F, A] =
     new QuicklensFunctor[F, A] {
       override def map(fa: F[A])(f: A => A) = fa.map(f)
     }
@@ -219,7 +224,10 @@ package object quicklens {
     }
   }
 
-  implicit def seqQuicklensFunctor[F[_], T](implicit cbf: CanBuildFrom[F[T], T, F[T]], ev: F[T] => SeqLike[T, F[T]]) =
+  implicit def seqQuicklensFunctor[F[_], T](
+      implicit cbf: CanBuildFrom[F[T], T, F[T]],
+      ev: F[T] => SeqLike[T, F[T]]
+  ): QuicklensAtFunctor[F, T] =
     new QuicklensAtFunctor[F, T] {
       override def at(fa: F[T], idx: Int)(f: T => T) =
         fa.updated(idx, f(fa(idx)))
