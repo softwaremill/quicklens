@@ -2,7 +2,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.8"
-val scala213 = "2.13.0-RC3"
+val scala213 = "2.13.0"
 
 val buildSettings = Defaults.coreDefaultSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
@@ -75,7 +75,7 @@ lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     Test / fork := true
   )
   .platformsSettings(JVMPlatform, JSPlatform)(
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.0.8-RC5" % Test
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.1.0-SNAP13" % Test
   )
   .nativeSettings(
     libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.0-SNAP10" % Test,
