@@ -24,17 +24,15 @@ val buildSettings = Defaults.coreDefaultSettings ++ Seq(
     false
   },
   developers := List(
-    Developer("adamw",
-              "Adam Warski",
-              "adam@warski.org",
-              url("http://www.warski.org"))
+    Developer("adamw", "Adam Warski", "adam@warski.org", url("http://www.warski.org"))
   ),
   scmInfo := Some(
-    ScmInfo(browseUrl = url("https://github.com/adamw/quicklens"),
-            connection = "scm:git:git@github.com:adamw/quicklens.git")
+    ScmInfo(
+      browseUrl = url("https://github.com/adamw/quicklens"),
+      connection = "scm:git:git@github.com:adamw/quicklens.git"
+    )
   ),
-  licenses := Seq(
-    "Apache2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  licenses := Seq("Apache2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
   homepage := Some(url("http://www.softwaremill.com")),
   sonatypeProfileName := "com.softwaremill",
   // sbt-release
@@ -55,6 +53,7 @@ lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
   .crossType(CrossType.Pure)
   .settings(buildSettings)
   .settings(
+    name := "quicklens",
     libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
     Test / publishArtifact := false,
     libraryDependencies ++= Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value % Test),
@@ -67,7 +66,7 @@ lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
         case Some((2, n)) if n >= 13 => sourceDir / "scala-2.13+"
         case _                       => sourceDir / "scala-2.13-"
       }
-    },
+    }
   )
   .jvmSettings(
     // Otherwise when running tests in sbt, the macro is not visible
