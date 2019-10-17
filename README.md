@@ -1,5 +1,4 @@
-Quicklens
-=========
+![Quicklens](https://github.com/softwaremill/quicklens/raw/master/banner.png)
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11)
 
@@ -232,3 +231,11 @@ val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.4.12"
 ````
 
 Also available for [Scala.js](http://www.scala-js.org) and [Scala Native](http://www.scala-native.org)!
+
+## Commercial Support
+
+We offer commercial support for Quicklens and related technologies, as well as development services. [Contact us](https://softwaremill.com) to learn more about our offer!
+
+## Copyright
+
+Copyright (C) 2013-2019 SoftwareMill [https://softwaremill.com](https://softwaremill.com).
