@@ -238,4 +238,4 @@ We offer commercial support for Quicklens and related technologies, as well as d
 
 ## Copyright
 
-Copyright (C) 2013-2019 SoftwareMill [https://softwaremill.com](https://softwaremill.com).
+Copyright (C) 2015-2019 SoftwareMill [https://softwaremill.com](https://softwaremill.com).
