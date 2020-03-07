@@ -1,9 +1,10 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class LensLazyTest extends FlatSpec with Matchers {
+class LensLazyTest extends AnyFlatSpec with Matchers {
   it should "create reusable lens of the given type" in {
     val lens = modify[A1](_.a2.a3.a4.a5.name)
 

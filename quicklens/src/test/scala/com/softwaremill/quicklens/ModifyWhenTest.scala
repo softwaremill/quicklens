@@ -1,6 +1,7 @@
 package com.softwaremill.quicklens
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 object ModifyWhenTestData {
   trait Animal
@@ -18,7 +19,7 @@ object ModifyWhenTestData {
   val olderZoo = Zoo(List(olderDog, olderCat))
 }
 
-class ModifyWhenTest extends FlatSpec with Matchers {
+class ModifyWhenTest extends AnyFlatSpec with Matchers {
   import ModifyWhenTestData._
 
   it should "modify a field in a subtype" in {

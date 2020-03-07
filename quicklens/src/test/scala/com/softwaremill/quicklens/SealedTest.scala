@@ -1,7 +1,8 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData.duplicate
-import org.scalatest._
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /**
   * This test data is in the same file as the test to ensure correct compilation order.
@@ -46,7 +47,7 @@ object SealedTestData {
     List[Pet](Fish("Finn, Jr."), Cat("Catia, Jr."), Dog("Douglas, Jr."))
 }
 
-class SealedTest extends FlatSpec with Matchers {
+class SealedTest extends AnyFlatSpec with Matchers {
   import SealedTestData._
 
   it should "modify a field in a sealed trait" in {

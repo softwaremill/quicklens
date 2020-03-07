@@ -1,9 +1,10 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ModifyLazyTest extends FlatSpec with Matchers {
+class ModifyLazyTest extends AnyFlatSpec with Matchers {
   it should "modify a single-nested case class field" in {
     val ml = modify[A5](_.name).using(duplicate)
     ml(a5) should be(a5dup)

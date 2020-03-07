@@ -1,6 +1,7 @@
 package com.softwaremill.quicklens
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 case class Named(name: String)
 
@@ -10,7 +11,7 @@ case class Eithers(e: Either[Named, Aged])
 
 case class MoreEithers(e1: Either[Eithers, MoreEithers], e2: Either[Eithers, MoreEithers])
 
-class ModifyEitherTest extends FlatSpec with Matchers {
+class ModifyEitherTest extends AnyFlatSpec with Matchers {
 
   it should "modify a single-nested left case class field" in {
     modify(

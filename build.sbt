@@ -1,8 +1,8 @@
-import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
-
 val scala211 = "2.11.12"
-val scala212 = "2.12.8"
-val scala213 = "2.13.0"
+val scala212 = "2.12.10"
+val scala213 = "2.13.1"
+
+lazy val is2_11 = settingKey[Boolean]("Is the scala version 2.11.")
 
 val buildSettings = Defaults.coreDefaultSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
@@ -39,7 +39,28 @@ val buildSettings = Defaults.coreDefaultSettings ++ Seq(
   releaseCrossBuild := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseIgnoreUntrackedFiles := true,
-  releaseProcess := QuicklensRelease.steps
+  releaseProcess := QuicklensRelease.steps,
+  //
+  is2_11 := scalaVersion.value.startsWith("2.11."),
+)
+
+val scalaTestNativeVersion = "3.2.0-M2"
+
+// an ugly work-around for https://github.com/sbt/sbt/issues/3465
+// even if a project is 2.11-only, we fake that it's also 2.12/2.13-compatible
+val not2_11settings = Seq(
+  publishArtifact := !is2_11.value,
+  skip := is2_11.value,
+  skip in compile := is2_11.value,
+  skip in publish := is2_11.value,
+  libraryDependencies := (if (!is2_11.value) libraryDependencies.value else Nil)
+)
+val only2_11settings = Seq(
+  publishArtifact := is2_11.value,
+  skip := !is2_11.value,
+  skip in compile := !is2_11.value,
+  skip in publish := !is2_11.value,
+  libraryDependencies := (if (is2_11.value) libraryDependencies.value else Nil)
 )
 
 lazy val root =
@@ -74,14 +95,20 @@ lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     Test / fork := true
   )
   .platformsSettings(JVMPlatform, JSPlatform)(
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.1.0-SNAP13" % Test
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.1.1" % Test
   )
+  .jsSettings(not2_11settings)
   .nativeSettings(
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.2.0-SNAP10" % Test,
+    libraryDependencies ++= Seq(
+      "org.scalatest" %%% "scalatest-shouldmatchers" % scalaTestNativeVersion % Test,
+      "org.scalatest" %%% "scalatest-flatspec" % scalaTestNativeVersion % Test,
+      "org.scala-native" %%% "test-interface" % "0.4.0-M2" % Test
+    ),
     scalaVersion := scala211,
     crossScalaVersions := Seq(scala211),
     nativeLinkStubs := true
   )
+  .nativeSettings(only2_11settings)
 
 lazy val quicklensJVM = quicklens.jvm
 lazy val quicklensJS = quicklens.js

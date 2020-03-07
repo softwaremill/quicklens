@@ -1,9 +1,10 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class SetToSimpleTest extends FlatSpec with Matchers {
+class SetToSimpleTest extends AnyFlatSpec with Matchers {
   it should "set a new value of a single-nested case class field" in {
     modify(a1)(_.a2.a3.a4.a5.name).setTo("mod") should be(a1mod)
   }

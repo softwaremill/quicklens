@@ -1,9 +1,10 @@
 package com.softwaremill.quicklens
 
 import com.softwaremill.quicklens.TestData._
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class ModifyAtTest extends FlatSpec with Matchers {
+class ModifyAtTest extends AnyFlatSpec with Matchers {
 
   it should "modify a non-nested list with case class item" in {
     modify(l1)(_.at(2).a4.a5.name).using(duplicate) should be(l1at2dup)
