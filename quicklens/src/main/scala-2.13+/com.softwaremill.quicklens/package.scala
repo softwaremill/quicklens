@@ -181,19 +181,24 @@ package object quicklens {
     }
 
   implicit def optionQuicklensFunctor[A]
-  : QuicklensFunctor[Option, A] with QuicklensGetFunctor[Option, A] with QuicklensGetOrElseFunctor[Option, A] =
-    new QuicklensFunctor[Option, A] with QuicklensGetFunctor[Option, A] with QuicklensGetOrElseFunctor[Option, A] {
+  : QuicklensFunctor[Option, A] with QuicklensSingleAtFunctor[Option, A] =
+    new QuicklensFunctor[Option, A] with QuicklensSingleAt[Option, A] {
       override def map(fa: Option[A])(f: A => A) = fa.map(f)
-      override def get(fa: Option[A])(f: A => A) = Some(fa.map(f).get)
-      override def getOrElse(fa: Option[A], default: => A)(f: A => A): Option[A] = fa.orElse(Some(default)).map(f)
+      override def at(fa: Option[A])(f: A => A) = Some(fa.map(f).get)
+      override def atOrElse(fa: Option[A], default: => A)(f: A => A): Option[A] = fa.orElse(Some(default)).map(f)
     }
 
-  trait QuicklensGetFunctor[F[_], T] {
-    def get(fa: F[T])(f: T => T): F[T]
+  trait QuicklensSingleAtFunctor[F[_], T] {
+    def at(fa: F[T])(f: T => T): F[T]
+    def atOrElse(fa: F[T], default: => T)(f: T => T): F[T]
   }
 
-  trait QuicklensGetOrElseFunctor[F[_], T] {
-    def getOrElse(fa: F[T], default: => T)(f: T => T): F[T]
+  implicit class QuicklensSingleAt[F[_], T](t: F[T])(implicit f: QuicklensSingleAtFunctor[F, T]) {
+    @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
+    def at: T = sys.error("")
+
+    @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
+    def atOrElse(default: => T): T = sys.error("")
   }
 
   implicit def traversableQuicklensFunctor[F[_], A](
@@ -219,12 +224,16 @@ package object quicklens {
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: K): T = sys.error("")
 
+    @compileTimeOnly(canOnlyBeUsedInsideModify("atOrElse"))
+    def atOrElse(idx: K, default: => T): T = sys.error("")
+
     @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: T = sys.error("")
   }
 
   trait QuicklensMapAtFunctor[F[_, _], K, T] {
     def at(fa: F[K, T], idx: K)(f: T => T): F[K, T]
+    def atOrElse(fa: F[K, T], idx: K, default: => T)(f: T => T): F[K, T]
     def each(fa: F[K, T])(f: T => T): F[K, T]
   }
 
@@ -233,6 +242,8 @@ package object quicklens {
   ): QuicklensMapAtFunctor[M, K, T] = new QuicklensMapAtFunctor[M, K, T] {
     override def at(fa: M[K, T], key: K)(f: T => T) =
       fa.updated(key, f(fa(key))).to(fac)
+    override def atOrElse(fa: M[K, T], key: K, default: => T)(f: T => T) =
+      fa.updated(key, f(fa.getOrElse(key, default))).to(fac)
     override def each(fa: M[K, T])(f: (T) => T) = {
       fa.view.mapValues(f).to(fac)
     }

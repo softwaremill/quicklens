@@ -10,6 +10,12 @@ class ModifyMapAtTest extends AnyFlatSpec with Matchers {
     modify(m1)(_.at("K1").a5.name).using(duplicate) should be(m1dup)
   }
 
+  it should "modify a non-nested map with atOrElse" in {
+    modify(m1)(_.atOrElse("K1", A4(A5("d4"))).a5.name).using(duplicate) should be(m1dup)
+    modify(m1)(_.atOrElse("K1", ???).a5.name).using(duplicate) should be(m1dup)
+    modify(m1)(_.atOrElse("K4", A4(A5("d4"))).a5.name).using(duplicate) should be(m1missingdup)
+  }
+
   it should "modify a non-nested sorted map with case class item" in {
     modify(ms1)(_.at("K1").a5.name).using(duplicate) should be(m1dup)
   }
@@ -24,6 +30,10 @@ class ModifyMapAtTest extends AnyFlatSpec with Matchers {
 
   it should "modify a nested map using at" in {
     modify(m2)(_.m3.at("K1").a5.name).using(duplicate) should be(m2dup)
+  }
+
+  it should "modify a nested map using atOrElse" in {
+    modify(m2)(_.m3.atOrElse("K4", A4(A5("d4"))).a5.name).using(duplicate) should be(m2missingdup)
   }
 
   it should "modify a non-nested map using each" in {

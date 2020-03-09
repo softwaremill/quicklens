@@ -5,10 +5,10 @@ import java.util.NoSuchElementException
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class ModifyGetTest extends AnyFlatSpec with Matchers {
+class ModifyOptionAtTest extends AnyFlatSpec with Matchers {
 
   it should "modify a Option with case class item" in {
-    modify(Option(1))(_.get).using(_ + 1) should be(Option(2))
+    modify(Option(1))(_.at).using(_ + 1) should be(Option(2))
   }
 
   it should "modify a Option in a case class hierarchy" in {
@@ -16,12 +16,12 @@ class ModifyGetTest extends AnyFlatSpec with Matchers {
     case class Bar(foo: Foo)
     case class BarOpt(maybeBar: Option[Bar])
     case class BazOpt(barOpt: BarOpt)
-    modify(BazOpt(BarOpt(Some(Bar(Foo(4))))))(_.barOpt.maybeBar.get.foo.a).using(_ + 1) should be(
+    modify(BazOpt(BarOpt(Some(Bar(Foo(4))))))(_.barOpt.maybeBar.at.foo.a).using(_ + 1) should be(
       BazOpt(BarOpt(Some(Bar(Foo(5)))))
     )
   }
 
   it should "crashes on missing key" in {
-    an[NoSuchElementException] should be thrownBy modify(None: Option[Int])(_.get).using(_ + 1)
+    an[NoSuchElementException] should be thrownBy modify(None: Option[Int])(_.at).using(_ + 1)
   }
 }

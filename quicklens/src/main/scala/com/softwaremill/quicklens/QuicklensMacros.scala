@@ -172,46 +172,23 @@ object QuicklensMacros {
       */
     @tailrec
     def collectPathElements(tree: c.Tree, acc: List[PathElement]): List[PathElement] = {
-      def functorMethodSupported(method: TermName) =
-        Seq("at", "eachWhere").contains(method.toString)
-
+      def methodSupported(method: TermName) =
+        Seq("at", "eachWhere", "atOrElse").contains(method.toString)
       def typeSupported(quicklensType: c.Tree) =
-        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt", "QuicklensWhen", "QuicklensEither")
+        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt", "QuicklensWhen", "QuicklensEither", "QuicklensSingleAt")
           .exists(quicklensType.toString.endsWith)
       tree match {
-        // TODO is there a better way to use the Type Api here?
-        case q"$parent.get" if parent.tpe.erasure <:< typeOf[Option[Unit]].erasure =>
-          val bType = parent.tpe.baseType(parent.tpe.typeSymbol)
-          collectPathElements(
-            parent,
-            FunctorPathElement(
-              q"implicitly[_root_.com.softwaremill.quicklens.QuicklensGetFunctor[${parent.tpe.typeConstructor}, ${bType.typeArgs.head}]]",
-              TermName("get")
-            ) :: acc
-          )
-        // TODO is there a better way to use the Type Api here?
-        case q"$parent.getOrElse[$_]($default)" if parent.tpe.erasure <:< typeOf[Option[Unit]].erasure =>
-          val bType = parent.tpe.baseType(parent.tpe.typeSymbol)
-          collectPathElements(
-            parent,
-            FunctorPathElement(
-              q"implicitly[_root_.com.softwaremill.quicklens.QuicklensGetOrElseFunctor[${parent.tpe.typeConstructor}, ${bType.typeArgs.head}]]",
-              TermName("getOrElse"),
-              default
-            ) :: acc
-          )
         case q"$parent.$child" =>
           val access = determinePathAccess(parent.tpe.typeSymbol)
           collectPathElements(parent, TermPathElement(child, access) :: acc)
         case q"$tpname[..$_]($parent).when[$tp]" if typeSupported(tpname) =>
           collectPathElements(parent, SubtypePathElement(tp.tpe.typeSymbol) :: acc)
-        case q"$parent.$method(..$xargs)" if functorMethodSupported(method) =>
+        case q"$parent.$method(..$xargs)" if methodSupported(method) =>
           collectPathElements(parent, TermPathElement(method, DirectPathAccess, xargs: _*) :: acc)
         case q"$tpname[..$_]($t)($f)" if typeSupported(tpname) =>
           val newAcc = acc match {
             // replace the term controlled by quicklens
-            case TermPathElement(term, _, xargs @ _*) :: rest =>
-              FunctorPathElement(f, term, xargs: _*) :: rest
+            case TermPathElement(term, _, xargs @ _*) :: rest => FunctorPathElement(f, term, xargs: _*) :: rest
             case pathEl :: _ =>
               c.abort(c.enclosingPosition, s"Invalid use of path element $pathEl. $ShapeInfo, got: ${path.tree}")
           }
@@ -322,6 +299,7 @@ object QuicklensMacros {
 
     val rootPathElParamTree = q"val $rootPathEl: ${weakTypeOf[T]}"
     val fnParamTree = q"val $fn: (${weakTypeOf[U]} => ${weakTypeOf[U]})"
+
     q"($rootPathElParamTree, $fnParamTree) => $copies"
   }
 }
