@@ -174,10 +174,27 @@ package object quicklens {
     }
   }
 
-  implicit def optionQuicklensFunctor[A]: QuicklensFunctor[Option, A] =
-    new QuicklensFunctor[Option, A] {
+  implicit def optionQuicklensFunctor[A]: QuicklensFunctor[Option, A] with QuicklensGetFunctor[Option, A] =
+    new QuicklensFunctor[Option, A] with QuicklensGetFunctor[Option, A] {
       override def map(fa: Option[A])(f: A => A) = fa.map(f)
+      override def get(fa: Option[A])(f: A => A) = Some(fa.map(f).get)
     }
+
+  implicit def optionQuicklensFunctor[A]
+  : QuicklensFunctor[Option, A] with QuicklensGetFunctor[Option, A] with QuicklensGetOrElseFunctor[Option, A] =
+    new QuicklensFunctor[Option, A] with QuicklensGetFunctor[Option, A] with QuicklensGetOrElseFunctor[Option, A] {
+      override def map(fa: Option[A])(f: A => A) = fa.map(f)
+      override def get(fa: Option[A])(f: A => A) = Some(fa.map(f).get)
+      override def getOrElse(fa: Option[A], default: => A)(f: A => A): Option[A] = fa.orElse(Some(default)).map(f)
+    }
+
+  trait QuicklensGetFunctor[F[_], T] {
+    def get(fa: F[T])(f: T => T): F[T]
+  }
+
+  trait QuicklensGetOrElseFunctor[F[_], T] {
+    def getOrElse(fa: F[T], default: => T)(f: T => T): F[T]
+  }
 
   implicit def traversableQuicklensFunctor[F[_], A](
       implicit fac: Factory[A, F[A]],
