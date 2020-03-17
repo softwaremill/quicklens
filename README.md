@@ -56,7 +56,7 @@ import com.softwaremill.quicklens._
 
 case class Street(name: String)
 case class Address(street: Option[Street])
-case class Person(addresses: List[Address])
+case class Person(addresses: Seq[Address])
 
 val person = Person(List(
   Address(Some(Street("1 Functional Rd."))),
@@ -66,7 +66,7 @@ val person = Person(List(
 val p2 = person.modify(_.addresses.each.street.each.name).using(_.toUpperCase)
 ````
 
-`.each` can only be used inside a `modify` and "unwraps" the container (currently supports `List`s, `Option`s and
+`.each` can only be used inside a `modify` and "unwraps" the container (currently supports `Seq`s, `Option`s and
 `Maps`s - only values are unwrapped for maps).
 You can add support for your own containers by providing an implicit `QuicklensFunctor[C]` with the appropriate
 `C` type parameter.
@@ -84,32 +84,54 @@ person
   .using(_.toUpperCase)
 ````
 
-**Modify specific sequence elements using .at:**
+**Modify specific elements in an option/sequence/map using .at:**
 
 ````scala
-person.modify(_.addresses.at(2).street.each.name).using(_.toUpperCase)
+person.modify(_.addresses.at(2).street.at.name).using(_.toUpperCase)
 ````
 
-Similarly to `.each`, `.at` modifies only the element at the given index. If there's no element at that index,
-an `IndexOutOfBoundsException` is thrown.
-
-**Modify specific map elements using .at:**
+Similarly to `.each`, `.at` modifies only the element at the given index/key. If there's no element at that index,
+an `IndexOutOfBoundsException` is thrown. In the above example, `.at(2)` selects an element in `addresses: Seq[Address]`
+ and `.at` selects the lone possible element in `street: Option[Street]`. If `street` is `None`, a
+ `NoSuchElementException` is thrown.
+ 
+`.at` works for map keys as well:
 
 ````scala
 case class Property(value: String)
 
-case class Person(name: String, props: Map[String, Property])
+case class PersonWithProps(name: String, props: Map[String, Property])
 
-val person = Person(
+val personWithProps = PersonWithProps(
   "Joe",
   Map("Role" -> Property("Programmmer"), "Age" -> Property("45"))
 )
 
-person.modify(_.props.at("Age").value).setTo("45")
+personWithProps.modify(_.props.at("Age").value).setTo("45")
 ````
 
 Similarly to `.each`, `.at` modifies only the element with the given key. If there's no such element,
 an `NoSuchElementException` is thrown.
+
+**Modify specific elements in an option or map with a fallback using .atOrElse:**
+
+````scala
+personWithProps.modify(_.props.atOrElse("NumReports", Property("0")).value).setTo("5")
+````
+
+If `props` contains an entry for `"NumReports"`, then `.atOrElse` behaves the same as `.at` and the second
+parameter is never evaluated. If there is no entry, then `.atOrElse` will make one using the second parameter
+ and perform subsequent modifications on the newly instantiated default.
+ 
+ For Options, `.atOrElse` takes no arguments and acts similarly. 
+ 
+ ````scala
+ person.modify(_.addresses.at(2).street.atOrElse(Street("main street")).name).using(_.toUpperCase)
+ ````
+ 
+ `.atOrElse` is currently not available for sequences because quicklens might need to insert many
+ elements in the list in order to ensure that one is available at a particular position, and it's not
+ clear that providing one default for all keys is the right behavior. 
 
 **Modify Either fields using .eachLeft and eachRight:**
 
@@ -129,9 +151,9 @@ val prodResource = devResource.modify(_.auth.eachLeft.token).setTo("real")
 ```scala
 trait Animal
 case class Dog(age: Int) extends Animal
-case class Cat(ages: List[Int]) extends Animal
+case class Cat(ages: Seq[Int]) extends Animal
 
-case class Zoo(animals: List[Animal])
+case class Zoo(animals: Seq[Animal])
 
 val zoo = Zoo(List(Dog(4), Cat(List(3, 12, 13))))
 

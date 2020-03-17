@@ -65,6 +65,23 @@ package object quicklens {
       */
     def using(mod: U => U): T = doModify(obj, mod)
 
+    /** An alias for [[using]]. Explicit calls to [[using]] are preferred over this alias, but we provide
+      * this option because code auto-formatters (like scalafmt) will generally not keep [[modify]]/[[using]]
+      * pairs on the same line, leading to code like
+      * {{{
+      * x
+      *   .modify(_.foo)
+      *   .using(newFoo :: _)
+      *   .modify(_.bar)
+      *   .using(_ + newBar)
+      * }}}
+      * When using [[apply]], scalafmt will allow
+      * {{{
+      * x
+      *   .modify(_.foo)(newFoo :: _)
+      *   .modify(_.bar)(_ + newBar)
+      * }}}
+      * */
     final def apply(mod: U => U): T = using(mod)
 
     /**
