@@ -65,7 +65,7 @@ package object quicklens {
       */
     def using(mod: U => U): T = doModify(obj, mod)
 
-    /** An alias for [[using]]. Explicit calls to [[using]] are preferred over this alias, but we provide
+    /** An alias for [[using]]. Explicit calls to [[using]] are preferred over this alias, but quicklens provides
       * this option because code auto-formatters (like scalafmt) will generally not keep [[modify]]/[[using]]
       * pairs on the same line, leading to code like
       * {{{
@@ -201,6 +201,7 @@ package object quicklens {
       override def atOrElse(fa: Option[A], default: => A)(f: A => A): Option[A] = fa.orElse(Some(default)).map(f)
     }
 
+  // Currently only used for [[Option]], but could be used for [[Right]]-biased [[Either]]s.
   trait QuicklensSingleAtFunctor[F[_], T] {
     def at(fa: F[T])(f: T => T): F[T]
     def atOrElse(fa: F[T], default: => T)(f: T => T): F[T]
@@ -210,7 +211,7 @@ package object quicklens {
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at: T = sys.error("")
 
-    @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
+    @compileTimeOnly(canOnlyBeUsedInsideModify("atOrElse"))
     def atOrElse(default: => T): T = sys.error("")
   }
 
