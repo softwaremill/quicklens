@@ -174,14 +174,7 @@ package object quicklens {
     }
   }
 
-  implicit def optionQuicklensFunctor[A]: QuicklensFunctor[Option, A] with QuicklensGetFunctor[Option, A] =
-    new QuicklensFunctor[Option, A] with QuicklensGetFunctor[Option, A] {
-      override def map(fa: Option[A])(f: A => A) = fa.map(f)
-      override def get(fa: Option[A])(f: A => A) = Some(fa.map(f).get)
-    }
-
-  implicit def optionQuicklensFunctor[A]
-  : QuicklensFunctor[Option, A] with QuicklensSingleAtFunctor[Option, A] =
+  implicit def optionQuicklensFunctor[A]: QuicklensFunctor[Option, A] with QuicklensSingleAtFunctor[Option, A] =
     new QuicklensFunctor[Option, A] with QuicklensSingleAt[Option, A] {
       override def map(fa: Option[A])(f: A => A) = fa.map(f)
       override def at(fa: Option[A])(f: A => A) = Some(fa.map(f).get)
