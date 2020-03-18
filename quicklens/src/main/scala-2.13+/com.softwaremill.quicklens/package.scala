@@ -64,6 +64,25 @@ package object quicklens {
       */
     def using(mod: U => U): T = doModify(obj, mod)
 
+    /** An alias for [[using]]. Explicit calls to [[using]] are preferred over this alias, but quicklens provides
+      * this option because code auto-formatters (like scalafmt) will generally not keep [[modify]]/[[using]]
+      * pairs on the same line, leading to code like
+      * {{{
+      * x
+      *   .modify(_.foo)
+      *   .using(newFoo :: _)
+      *   .modify(_.bar)
+      *   .using(_ + newBar)
+      * }}}
+      * When using [[apply]], scalafmt will allow
+      * {{{
+      * x
+      *   .modify(_.foo)(newFoo :: _)
+      *   .modify(_.bar)(_ + newBar)
+      * }}}
+      * */
+    final def apply(mod: U => U): T = using(mod)
+
     /**
       * Transform the value of the field(s) using the given function, if the condition is true. Otherwise, returns the
       * original object unchanged.
@@ -175,7 +194,7 @@ package object quicklens {
   }
 
   implicit def optionQuicklensFunctor[A]: QuicklensFunctor[Option, A] with QuicklensSingleAtFunctor[Option, A] =
-    new QuicklensFunctor[Option, A] with QuicklensSingleAt[Option, A] {
+    new QuicklensFunctor[Option, A] with QuicklensSingleAtFunctor[Option, A] {
       override def map(fa: Option[A])(f: A => A) = fa.map(f)
       override def at(fa: Option[A])(f: A => A) = Some(fa.map(f).get)
       override def atOrElse(fa: Option[A], default: => A)(f: A => A): Option[A] = fa.orElse(Some(default)).map(f)
