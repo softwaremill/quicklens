@@ -56,7 +56,7 @@ import com.softwaremill.quicklens._
 
 case class Street(name: String)
 case class Address(street: Option[Street])
-case class Person(addresses: Seq[Address])
+case class Person(addresses: List[Address])
 
 val person = Person(List(
   Address(Some(Street("1 Functional Rd."))),
@@ -91,7 +91,7 @@ person.modify(_.addresses.at(2).street.at.name).using(_.toUpperCase)
 ````
 
 Similarly to `.each`, `.at` modifies only the element at the given index/key. If there's no element at that index,
-an `IndexOutOfBoundsException` is thrown. In the above example, `.at(2)` selects an element in `addresses: Seq[Address]`
+an `IndexOutOfBoundsException` is thrown. In the above example, `.at(2)` selects an element in `addresses: List[Address]`
  and `.at` selects the lone possible element in `street: Option[Street]`. If `street` is `None`, a
  `NoSuchElementException` is thrown.
  
