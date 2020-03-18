@@ -9,6 +9,10 @@ class ModifySimpleTest extends AnyFlatSpec with Matchers {
     modify(a5)(_.name).using(duplicate) should be(a5dup)
   }
 
+  it should "modify a single-nested case class field using apply" in {
+    modify(a5)(_.name)(duplicate) should be(a5dup)
+  }
+
   it should "modify a deeply-nested case class field" in {
     modify(a1)(_.a2.a3.a4.a5.name).using(duplicate) should be(a1dup)
   }

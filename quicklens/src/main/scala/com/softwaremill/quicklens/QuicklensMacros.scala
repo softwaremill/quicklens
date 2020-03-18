@@ -173,9 +173,9 @@ object QuicklensMacros {
     @tailrec
     def collectPathElements(tree: c.Tree, acc: List[PathElement]): List[PathElement] = {
       def methodSupported(method: TermName) =
-        Seq("at", "eachWhere").contains(method.toString)
+        Seq("at", "eachWhere", "atOrElse").contains(method.toString)
       def typeSupported(quicklensType: c.Tree) =
-        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt", "QuicklensWhen", "QuicklensEither")
+        Seq("QuicklensEach", "QuicklensAt", "QuicklensMapAt", "QuicklensWhen", "QuicklensEither", "QuicklensSingleAt")
           .exists(quicklensType.toString.endsWith)
       tree match {
         case q"$parent.$child" =>
