@@ -25,7 +25,22 @@ class ModifySimpleTest extends AnyFlatSpec with Matchers {
     modify(a5)(_.name).usingIf(true)(duplicate) should be(a5dup)
   }
 
-  it should "leave a case class unchanged if the condition is flase" in {
+  it should "leave a case class unchanged if the condition is false" in {
     modify(a5)(_.name).usingIf(false)(duplicate) should be(a5)
+  }
+
+  it should "modify polymorphic case class field" in {
+    modify(aPoly)(_.poly).using(duplicate) should be(aPolyDup)
+  }
+
+  it should "modify polymorphic case class field using apply" in {
+    modify(aPoly)(_.poly)(duplicate) should be(aPolyDup)
+  }
+
+  it should "modify polymorphic case class field if condition is true" in {
+    modify(aPoly)(_.poly).usingIf(true)(duplicate) should be(aPolyDup)
+  }
+  it should "leave a polymorphic case class field if condition is false" in {
+    modify(aPoly)(_.poly).usingIf(false)(duplicate) should be(aPoly)
   }
 }
