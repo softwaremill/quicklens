@@ -19,4 +19,8 @@ class ModifyPimpTest extends AnyFlatSpec with Matchers {
   it should "modify several fields" in {
     b1.modifyAll(_.b2, _.b3.each).using(duplicate) should be(b1dupdup)
   }
+
+  it should "modify polymorphic case class field" in {
+    aPoly.modify(_.poly).using(duplicate) should be(aPolyDup)
+  }
 }

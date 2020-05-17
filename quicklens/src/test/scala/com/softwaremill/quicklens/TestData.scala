@@ -17,6 +17,10 @@ object TestData {
   val a1dupdup = A1(A2(A3(A4(A5("datadatadatadata")))))
   val a1mod = A1(A2(A3(A4(A5("mod")))))
 
+  case class APoly[T](poly: T, i: Int)
+  val aPoly = APoly("data", 1)
+  val aPolyDup = APoly("datadata", 1)
+
   case class B1(b2: String, b3: Option[String])
 
   val b1 = B1("data", Some("data"))
