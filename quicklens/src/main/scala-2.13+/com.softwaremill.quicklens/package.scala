@@ -195,15 +195,17 @@ package object quicklens {
 
   implicit def optionQuicklensFunctor[A]: QuicklensFunctor[Option, A] with QuicklensSingleAtFunctor[Option, A] =
     new QuicklensFunctor[Option, A] with QuicklensSingleAtFunctor[Option, A] {
-      override def map(fa: Option[A])(f: A => A) = fa.map(f)
-      override def at(fa: Option[A])(f: A => A) = Some(fa.map(f).get)
+      override def map(fa: Option[A])(f: A => A): Option[A] = fa.map(f)
+      override def at(fa: Option[A])(f: A => A): Option[A] = Some(fa.map(f).get)
       override def atOrElse(fa: Option[A], default: => A)(f: A => A): Option[A] = fa.orElse(Some(default)).map(f)
+      override def index(fa: Option[A])(f: A => A): Option[A] = fa.map(f)
     }
 
   // Currently only used for [[Option]], but could be used for [[Right]]-biased [[Either]]s.
   trait QuicklensSingleAtFunctor[F[_], T] {
     def at(fa: F[T])(f: T => T): F[T]
     def atOrElse(fa: F[T], default: => T)(f: T => T): F[T]
+    def index(fa: F[T])(f: T => T): F[T]
   }
 
   implicit class QuicklensSingleAt[F[_], T](t: F[T])(implicit f: QuicklensSingleAtFunctor[F, T]) {
@@ -212,6 +214,9 @@ package object quicklens {
 
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def atOrElse(default: => T): T = sys.error("")
+
+    @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
+    def index: T = sys.error("")
   }
 
   implicit def traversableQuicklensFunctor[F[_], A](
@@ -225,10 +230,13 @@ package object quicklens {
   implicit class QuicklensAt[F[_], T](t: F[T])(implicit f: QuicklensAtFunctor[F, T]) {
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: Int): T = sys.error("")
+    @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
+    def index(idx: Int): T = sys.error("")
   }
 
   trait QuicklensAtFunctor[F[_], T] {
     def at(fa: F[T], idx: Int)(f: T => T): F[T]
+    def index(fa: F[T], idx: Int)(f: T => T): F[T]
   }
 
   implicit class QuicklensMapAt[M[KT, TT] <: Map[KT, TT], K, T](t: M[K, T])(
@@ -240,6 +248,9 @@ package object quicklens {
     @compileTimeOnly(canOnlyBeUsedInsideModify("atOrElse"))
     def atOrElse(idx: K, default: => T): T = sys.error("")
 
+    @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
+    def index(idx: K): T = sys.error("")
+
     @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: T = sys.error("")
   }
@@ -247,28 +258,33 @@ package object quicklens {
   trait QuicklensMapAtFunctor[F[_, _], K, T] {
     def at(fa: F[K, T], idx: K)(f: T => T): F[K, T]
     def atOrElse(fa: F[K, T], idx: K, default: => T)(f: T => T): F[K, T]
+    def index(fa: F[K, T], idx: K)(f: T => T): F[K, T]
     def each(fa: F[K, T])(f: T => T): F[K, T]
   }
 
   implicit def mapQuicklensFunctor[M[KT, TT] <: Map[KT, TT], K, T](
       implicit fac: Factory[(K, T), M[K, T]]
   ): QuicklensMapAtFunctor[M, K, T] = new QuicklensMapAtFunctor[M, K, T] {
-    override def at(fa: M[K, T], key: K)(f: T => T) =
+    override def at(fa: M[K, T], key: K)(f: T => T): M[K, T] =
       fa.updated(key, f(fa(key))).to(fac)
-    override def atOrElse(fa: M[K, T], key: K, default: => T)(f: T => T) =
+    override def atOrElse(fa: M[K, T], key: K, default: => T)(f: T => T): M[K, T] =
       fa.updated(key, f(fa.getOrElse(key, default))).to(fac)
-    override def each(fa: M[K, T])(f: (T) => T) = {
+    override def index(fa: M[K, T], key: K)(f: T => T): M[K, T] =
+      fa.get(key).map(f).fold(fa)(fa.updated(key, _))
+    override def each(fa: M[K, T])(f: (T) => T): M[K, T] = {
       fa.view.mapValues(f).to(fac)
     }
   }
 
-  implicit def seqQuicklensFunctor[F[_], T](
+  implicit def seqQuicklensAtFunctor[F[_], T](
       implicit fac: Factory[T, F[T]],
       ev: F[T] => Seq[T]
   ): QuicklensAtFunctor[F, T] =
     new QuicklensAtFunctor[F, T] {
-      override def at(fa: F[T], idx: Int)(f: T => T) =
+      override def at(fa: F[T], idx: Int)(f: T => T):F[T] =
         fa.updated(idx, f(fa(idx))).to(fac)
+      override def index(fa: F[T], idx: Int)(f: T => T):F[T] =
+        if (idx < fa.size) fa.updated(idx, f(fa(idx))).to(fac) else fa
     }
 
   implicit class QuicklensWhen[A](value: A) {
