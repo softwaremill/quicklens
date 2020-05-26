@@ -1,6 +1,7 @@
 ![Quicklens](https://github.com/softwaremill/quicklens/raw/master/banner.png)
 
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11)
+[![Build Status](https://travis-ci.org/softwaremill/quicklens.svg?branch=master)](https://travis-ci.org/softwaremill/quicklens)
 
 **Modify deeply nested fields in case classes:**
 
