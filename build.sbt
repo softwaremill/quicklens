@@ -41,7 +41,7 @@ val buildSettings = Seq(
   is2_11 := scalaVersion.value.startsWith("2.11."),
 )
 
-val scalaTestNativeVersion = "3.2.0-M2"
+val scalaTestNativeVersion = "3.3.0-SNAP2"
 
 lazy val root =
   project
@@ -77,7 +77,7 @@ lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
     crossScalaVersions := Seq(scalaVersion.value, scala212, scala213),
   )
   .platformsSettings(JVMPlatform, JSPlatform)(
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.1.1" % Test
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.1.2" % Test
   )
   .jsSettings(
     scalaVersion := scala212,
