@@ -49,7 +49,7 @@ val person = Person("john", Some("steve"), "smith")
 person.modifyAll(_.firstName, _.middleName.each, _.lastName).using(_.capitalize)
 ````
 
-**Traverse options/lists/maps using .each:**
+**Traverse options/lists/maps using `.each`:**
 
 ````scala
 import com.softwaremill.quicklens._
@@ -71,7 +71,7 @@ val p2 = person.modify(_.addresses.each.street.each.name).using(_.toUpperCase)
 You can add support for your own containers by providing an implicit `QuicklensFunctor[C]` with the appropriate
 `C` type parameter.
 
-**Traverse selected elements using .eachWhere:**
+**Traverse selected elements using `.eachWhere`:**
 
 Similarly to `.each`, you can use `.eachWhere(p)` where `p` is a predicate to modify only the elements which satisfy
 the condition. All other elements remain unchanged.
@@ -84,7 +84,7 @@ person
   .using(_.toUpperCase)
 ````
 
-**Modify specific elements in an option/sequence/map using .at:**
+**Modify specific elements in an option/sequence/map using `.at`:**
 
 ````scala
 person.modify(_.addresses.at(2).street.at.name).using(_.toUpperCase)
@@ -113,7 +113,36 @@ personWithProps.modify(_.props.at("Age").value).setTo("45")
 Similarly to `.each`, `.at` modifies only the element with the given key. If there's no such element,
 an `NoSuchElementException` is thrown.
 
-**Modify specific elements in an option or map with a fallback using .atOrElse:**
+**Modify specific elements in an option/sequence/map using `.index`:**
+
+````scala
+person.modify(_.addresses.index(2).street.index.name).using(_.toUpperCase)
+````
+
+Similarly to `.at`, `.index` modifies only the element at the given index/key. If there's no element at that index,
+no modification is made. In the above example, `.index(2)` selects an element in `addresses: List[Address]`
+ and `.index` selects the lone possible element in `street: Option[Street]`. If `street` is `None`, no modification
+ is made.
+ 
+`.index` works for map keys as well:
+
+````scala
+case class Property(value: String)
+
+case class PersonWithProps(name: String, props: Map[String, Property])
+
+val personWithProps = PersonWithProps(
+  "Joe",
+  Map("Role" -> Property("Programmmer"), "Age" -> Property("45"))
+)
+
+personWithProps.modify(_.props.index("Age").value).setTo("45")
+````
+
+Similarly to `.at`, `.index` modifies only the element with the given key. If there's no such element,
+no modification is made.
+
+**Modify specific elements in an option or map with a fallback using `.atOrElse`:**
 
 ````scala
 personWithProps.modify(_.props.atOrElse("NumReports", Property("0")).value).setTo("5")
@@ -133,7 +162,7 @@ parameter is never evaluated. If there is no entry, then `.atOrElse` will make o
  elements in the list in order to ensure that one is available at a particular position, and it's not
  clear that providing one default for all keys is the right behavior. 
 
-**Modify Either fields using .eachLeft and eachRight:**
+**Modify Either fields using `.eachLeft` and `.eachRight`:**
 
 ````scala
 case class AuthContext(token: String)
