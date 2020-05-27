@@ -2,23 +2,6 @@ val scala211 = "2.11.12"
 val scala212 = "2.12.10"
 val scala213 = "2.13.2"
 
-lazy val is2_11 = settingKey[Boolean]("Is the scala version 2.11.")
-
-// an ugly work-around for https://github.com/sbt/sbt/issues/3465
-// even if a project is 2.11-only, we fake that it's also 2.12/2.13-compatible
-val only2_11settings = Seq(
-  publishArtifact := is2_11.value,
-  skip := !is2_11.value,
-  skip in publish := !is2_11.value,
-  libraryDependencies := (if (is2_11.value) libraryDependencies.value else Nil)
-)
-val not2_11settings = Seq(
-  publishArtifact := !is2_11.value,
-  skip := is2_11.value,
-  skip in publish := is2_11.value,
-  libraryDependencies := (if (!is2_11.value) libraryDependencies.value else Nil)
-)
-
 val buildSettings = Seq(
   organization := "com.softwaremill.quicklens",
   scalacOptions := Seq("-deprecation", "-feature", "-unchecked"),
@@ -51,9 +34,7 @@ val buildSettings = Seq(
   releaseCrossBuild := true,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseIgnoreUntrackedFiles := true,
-  releaseProcess := QuicklensRelease.steps,
-  //
-  is2_11 := scalaVersion.value.startsWith("2.11.")
+  releaseProcess := QuicklensRelease.steps
 )
 
 val scalaTestNativeVersion = "3.3.0-SNAP2"
@@ -63,10 +44,20 @@ lazy val root =
     .in(file("."))
     .settings(buildSettings)
     .settings(publishArtifact := false)
-    .aggregate(quicklensJVM, quicklensJS, quicklensNative)
+    .aggregate(quicklens.projectRefs: _*)
 
-lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
-  .crossType(CrossType.Pure)
+val versionSpecificScalaSource = {
+  unmanagedSourceDirectories in Compile := {
+    val current = (unmanagedSourceDirectories in Compile).value
+    val sv = (scalaVersion in Compile).value
+    val baseDirectory = (scalaSource in Compile).value
+    val versionSpecificSources =
+      new File(baseDirectory.getAbsolutePath + "-" + (if (sv == scala213) "2.13+" else "2.13-"))
+    versionSpecificSources +: current
+  }
+}
+
+lazy val quicklens = (projectMatrix in file("quicklens"))
   .settings(buildSettings)
   .settings(
     name := "quicklens",
@@ -82,29 +73,31 @@ lazy val quicklens = crossProject(JVMPlatform, JSPlatform, NativePlatform)
         case Some((2, n)) if n >= 13 => sourceDir / "scala-2.13+"
         case _                       => sourceDir / "scala-2.13-"
       }
-    },
-    scalaVersion := scala211,
-    crossScalaVersions := Seq(scalaVersion.value, scala212, scala213)
+    }
   )
-  .jvmSettings(
-    // Otherwise when running tests in sbt, the macro is not visible
-    // (both macro and usages are compiled in the same compiler run)
-    Test / fork := true
+  .jvmPlatform(
+    scalaVersions = List(scala211, scala212, scala213),
+    settings = Seq(
+      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.1.2" % Test,
+      versionSpecificScalaSource
+    )
   )
-  .platformsSettings(JVMPlatform, JSPlatform)(
-    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.1.2" % Test
+  .jsPlatform(
+    scalaVersions = List(scala212, scala213),
+    settings = Seq(
+      libraryDependencies += "org.scalatest" %%% "scalatest" % "3.1.2" % Test,
+      versionSpecificScalaSource
+    )
   )
-  .jsSettings(not2_11settings)
-  .nativeSettings(
-    libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest-shouldmatchers" % scalaTestNativeVersion % Test,
-      "org.scalatest" %%% "scalatest-flatspec" % scalaTestNativeVersion % Test,
-      "org.scala-native" %%% "test-interface" % "0.4.0-M2" % Test
-    ),
-    nativeLinkStubs := true
+  .nativePlatform(
+    scalaVersions = List(scala211),
+    settings = Seq(
+      libraryDependencies ++= Seq(
+        "org.scalatest" %%% "scalatest-shouldmatchers" % scalaTestNativeVersion % Test,
+        "org.scalatest" %%% "scalatest-flatspec" % scalaTestNativeVersion % Test,
+        "org.scala-native" %%% "test-interface" % "0.4.0-M2" % Test
+      ),
+      nativeLinkStubs := true,
+      versionSpecificScalaSource
+    )
   )
-  .nativeSettings(only2_11settings)
-
-lazy val quicklensJVM = quicklens.jvm
-lazy val quicklensJS = quicklens.js
-lazy val quicklensNative = quicklens.native
