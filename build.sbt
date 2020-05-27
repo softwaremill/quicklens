@@ -31,7 +31,7 @@ val buildSettings = Seq(
   homepage := Some(url("http://www.softwaremill.com")),
   sonatypeProfileName := "com.softwaremill",
   // sbt-release
-  releaseCrossBuild := true,
+  releaseCrossBuild := false,
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
   releaseIgnoreUntrackedFiles := true,
   releaseProcess := QuicklensRelease.steps
