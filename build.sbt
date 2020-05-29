@@ -52,7 +52,7 @@ val versionSpecificScalaSource = {
     val sv = (scalaVersion in Compile).value
     val baseDirectory = (scalaSource in Compile).value
     val versionSpecificSources =
-      new File(baseDirectory.getAbsolutePath + "-" + (if (sv == scala213) "2.13+" else "2.13-"))
+      new File(baseDirectory.getAbsolutePath + "-" + (if (CrossVersion.partialVersion(sv) == Some((2, 13))) "2.13+" else "2.13-"))
     versionSpecificSources +: current
   }
 }
