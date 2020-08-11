@@ -61,7 +61,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
   .settings(buildSettings)
   .settings(
     name := "quicklens",
-    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
     Test / publishArtifact := false,
     libraryDependencies ++= Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value % Test),
     // Adds a `src/main/scala-2.13+` source directory for Scala 2.13 and newer
