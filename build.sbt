@@ -44,14 +44,18 @@ lazy val root =
     .settings(publishArtifact := false)
     .aggregate(quicklens.projectRefs: _*)
 
-val versionSpecificScalaSource = {
+val versionSpecificScalaSources = {
   unmanagedSourceDirectories in Compile := {
     val current = (unmanagedSourceDirectories in Compile).value
     val sv = (scalaVersion in Compile).value
     val baseDirectory = (scalaSource in Compile).value
-    val versionSpecificSources =
-      new File(baseDirectory.getAbsolutePath + "-" + (if (CrossVersion.partialVersion(sv) == Some((2, 13))) "2.13+" else "2.13-"))
-    versionSpecificSources +: current
+    val suffixes = CrossVersion.partialVersion(sv) match {
+      case Some((2, 13)) => List("2", "2.13+")
+      case Some((2, _)) => List("2", "2.13-")
+      case Some((3, _)) => List("3")
+    }
+    val versionSpecificSources = suffixes.map(s => new File(baseDirectory.getAbsolutePath + "-" + s))
+    versionSpecificSources ++ current
   }
 }
 
@@ -62,7 +66,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
     Test / publishArtifact := false,
     libraryDependencies ++= Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value % Test),
-    versionSpecificScalaSource,
+    versionSpecificScalaSources,
     libraryDependencies ++= Seq("flatspec", "shouldmatchers").map(m =>
       "org.scalatest" %%% s"scalatest-$m" % "3.2.3" % Test
     )
@@ -76,9 +80,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
   .nativePlatform(
     scalaVersions = List(scala211),
     settings = Seq(
-      libraryDependencies ++= Seq(
-        "org.scala-native" %%% "test-interface" % "0.4.0-M2" % Test
-      ),
+      libraryDependencies ++= Seq("org.scala-native" %%% "test-interface" % "0.4.0-M2" % Test),
       nativeLinkStubs := true
     )
   )
