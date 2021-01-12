@@ -1,4 +1,4 @@
-val scalaJSVersion = Option(System.getenv("SCALAJS_VERSION")).getOrElse("1.1.0")
+val scalaJSVersion = Option(System.getenv("SCALAJS_VERSION")).getOrElse("1.4.0")
 val scalaNativeVersion = Option(System.getenv("SCALANATIVE_VERSION")).getOrElse("0.4.0-M2")
 
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % scalaJSVersion)
@@ -13,4 +13,6 @@ addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.2")
 
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.13")
 
-addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.5.2")
+addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.7.0")
+
+addSbtPlugin("ch.epfl.lamp" % "sbt-dotty" % "0.5.1")
