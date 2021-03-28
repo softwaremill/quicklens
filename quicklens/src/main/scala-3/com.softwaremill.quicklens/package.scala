@@ -4,16 +4,25 @@ import scala.quoted.*
 
 package object quicklens {
 
-  /**
-    * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
-    * via `path` on the given `obj`.
-    *
-    * All modifications are side-effect free and create copies of the original objects.
-    *
-    * You can use `.each` to traverse options, lists, etc.
-    */
   extension [S, A](inline obj: S)
+    /**
+      * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
+      * via `path` on the given `obj`.
+      *
+      * All modifications are side-effect free and create copies of the original objects.
+      *
+      * You can use `.each` to traverse options, lists, etc.
+      */
     inline def modify(inline path: S => A): PathModify[S, A] = ${ modifyImpl('obj, 'path) }
+    /**
+      * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
+      * via `paths` on the given `obj`.
+      *
+      * All modifications are side-effect free and create copies of the original objects.
+      *
+      * You can use `.each` to traverse options, lists, etc.
+      */
+    inline def modifyAll(inline path: S => A, inline paths: (S => A)*) : PathModify[S, A] = ${ modifyAllImpl('obj, 'path, 'paths) }
 
   case class PathModify[S, A](obj: S, f: (A => A) => S) {
     
@@ -102,7 +111,30 @@ package object quicklens {
 
   def toPathModify[S: Type, A: Type](obj: Expr[S], f: Expr[(A => A) => S])(using Quotes): Expr[PathModify[S, A]] = '{ PathModify( ${obj}, ${f} ) }
 
+  def fromPathModify[S: Type, A: Type](pathModify: Expr[PathModify[S, A]])(using Quotes): Expr[(A => A) => S] = '{ ${pathModify}.f }
+
   def to[T: Type, R: Type](f: Expr[T] => Expr[R])(using Quotes): Expr[T => R] = '{ (x: T) => ${ f('x) } }
+
+  def from[T: Type, R: Type](f: Expr[T => R])(using Quotes): Expr[T] => Expr[R] = (x: Expr[T]) => '{ $f($x) }
+
+  def modifyAllImpl[S, A](obj: Expr[S], focus: Expr[S => A], focusesExpr: Expr[Seq[S => A]])(using qctx: Quotes, tpeS: Type[S], tpeA: Type[A]): Expr[PathModify[S, A]] = {
+    import qctx.reflect.*
+
+    val focuses = focusesExpr match {
+      case Varargs(args) => args
+    }
+
+    val modF1 = fromPathModify(modifyImpl(obj, focus))
+    val modF = to[(A => A), S] { (mod: Expr[A => A]) =>
+      focuses.foldLeft(from[(A => A), S](modF1).apply(mod)) {
+        case (objAcc, focus) =>
+          val modCur = fromPathModify(modifyImpl(objAcc, focus))
+          from[(A => A), S](modCur).apply(mod)
+      }
+    }
+
+    toPathModify(obj, modF)
+  }
 
   def modifyImpl[S, A](obj: Expr[S], focus: Expr[S => A])(using qctx: Quotes, tpeS: Type[S], tpeA: Type[A]): Expr[PathModify[S, A]] = {
     import qctx.reflect.*
@@ -217,6 +249,8 @@ package object quicklens {
     val focusTree: Tree = focus.asTerm
     val path = focusTree match {
       case Inlined(_, _, Block(List(DefDef(_, _, _, Some(p))), _)) =>
+        toPath(p)
+      case Block(List(DefDef(_, _, _, Some(p))), _) =>
         toPath(p)
       case _ =>
         report.error(shapeInfo)
