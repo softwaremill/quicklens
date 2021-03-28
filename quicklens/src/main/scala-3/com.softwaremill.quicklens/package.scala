@@ -96,6 +96,7 @@ package object quicklens {
 
   extension [F[_]: QuicklensFunctor, A](fa: F[A])
     def each: A = ???
+    def eachWhere(cond: A => Boolean): A = ???
 
   private val shapeInfo = "focus must have shape: _.field1.each.field3"
 
@@ -109,10 +110,12 @@ package object quicklens {
     enum PathSymbol:
       case Field(name: String)
       case Each(givn: Term, typeTree: TypeTree)
+      case EachWhere(givn: Term, typeTree: TypeTree, cond: Term)
 
     object PathSymbol {
-      def specialSymbolByName(term: Term, methodName: String, typeTree: TypeTree): PathSymbol = methodName match {
-        case "each" => Each(term, typeTree)
+      def specialSymbolByName(givn: Term, methodName: String, typeTree: TypeTree, cond: Option[Term]): PathSymbol = methodName match {
+        case "each" => Each(givn, typeTree)
+        case "eachWhere" => EachWhere(givn, typeTree, cond.get)
         case _ =>
           report.error(shapeInfo)
           ???
@@ -123,8 +126,10 @@ package object quicklens {
       tree match {
         case Select(deep, ident) =>
           toPath(deep) :+ PathSymbol.Field(ident)
+        case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(cond)), List(ident: Ident)) =>
+          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last, Some(cond))
         case Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(ident: Ident)) =>
-          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last)
+          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last, None)
         case Apply(deep, idents) =>
           toPath(deep) ++ idents.flatMap(toPath)
         case i: Ident if i.name.startsWith("_") =>
@@ -176,6 +181,33 @@ package object quicklens {
         val defdefStatements = DefDef(
           defdefSymbol, {
             case List(List(x)) => Some(mapToCopy(mod, x.asExpr.asTerm, tail))
+          }
+        )
+        val closure = Closure(Ref(defdefSymbol), None)
+        val block = Block(List(defdefStatements), closure)
+        Apply(map, List(objTerm, block))
+      case (m: PathSymbol.EachWhere) :: tail =>
+        val defdefSymbol = Symbol.newMethod(
+          Symbol.spliceOwner,
+          "$anonfun",
+          MethodType(List("x"))(_ => List(m.typeTree.tpe), _ => m.typeTree.tpe)
+        )
+        val mapMethod = termMethodByNameUnsafe(m.givn, "map")
+        val map = TypeApply(
+          Select(m.givn, mapMethod),
+          List(m.typeTree, m.typeTree)
+        )
+        val apply = termMethodByNameUnsafe(m.cond.asExpr.asTerm, "apply")
+        val defdefStatements = DefDef(
+          defdefSymbol, {
+            case List(List(x)) =>
+              Some(
+                If(
+                  Apply(Select(m.cond, apply), List(x.asExpr.asTerm)),
+                  mapToCopy(mod, x.asExpr.asTerm, tail),
+                  x.asExpr.asTerm
+                )
+              )
           }
         )
         val closure = Closure(Ref(defdefSymbol), None)
