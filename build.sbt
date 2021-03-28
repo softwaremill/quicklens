@@ -60,16 +60,32 @@ val versionSpecificScalaSources = {
   }
 }
 
+def compilerLibrary(scalaVersion: String) = {
+  if (scalaVersion == scala3) {
+    Seq.empty
+  } else {
+    Seq("org.scala-lang" % "scala-compiler" % scalaVersion % Test)
+  }
+}
+
+def reflectLibrary(scalaVersion: String) = {
+  if (scalaVersion == scala3) {
+    Seq.empty
+  } else {
+    Seq("org.scala-lang" % "scala-reflect" % scalaVersion % Provided)
+  }
+}
+
 lazy val quicklens = (projectMatrix in file("quicklens"))
   .settings(buildSettings)
   .settings(
     name := "quicklens",
-    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
+    libraryDependencies ++= reflectLibrary(scalaVersion.value),
     Test / publishArtifact := false,
-    libraryDependencies ++= Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value % Test),
+    libraryDependencies ++= compilerLibrary(scalaVersion.value),
     versionSpecificScalaSources,
     libraryDependencies ++= Seq("flatspec", "shouldmatchers").map(m =>
-      "org.scalatest" %%% s"scalatest-$m" % "3.2.3" % Test
+      "org.scalatest" %%% s"scalatest-$m" % "3.2.4" % Test
     )
   )
   .jvmPlatform(
