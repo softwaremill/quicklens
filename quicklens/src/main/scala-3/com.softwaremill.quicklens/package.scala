@@ -127,6 +127,10 @@ package object quicklens {
     given QuicklensFunctor[Option] with {
       def map[A, B](fa: Option[A], f: A => B): Option[B] = fa.map(f)
     }
+
+    given [K, M <: ([V] =>> Map[K, V])] : QuicklensFunctor[M] with {
+      def map[A, B](fa: M[A], f: A => B): M[B] = fa.view.mapValues(f).toMap.asInstanceOf[M[B]]
+    }
   }
 
   trait QuicklensIndexedFunctor[F[_], I] {
@@ -144,13 +148,13 @@ package object quicklens {
       def index[A](fa: List[A], f: A => A, idx: Int): List[A] =
         if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
     }
-    given [K] : QuicklensIndexedFunctor[[A] =>> Map[K, A], K] with {
-      def at[A](fa: Map[K, A], f: A => A, idx: K): Map[K, A] =
-        fa.updated(idx, f(fa(idx)))
-      def atOrElse[A](fa: Map[K, A], f: A => A, idx: K, default: => A): Map[K, A] =
-        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
-      def index[A](fa: Map[K, A], f: A => A, idx: K): Map[K, A] =
-        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
+    given [K, M <: ([V] =>> Map[K, V])] : QuicklensIndexedFunctor[M, K] with {
+      def at[A](fa: M[A], f: A => A, idx: K): M[A] =
+        fa.updated(idx, f(fa(idx))).asInstanceOf[M[A]]
+      def atOrElse[A](fa: M[A], f: A => A, idx: K, default: => A): M[A] =
+        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default)))).asInstanceOf[M[A]]
+      def index[A](fa: M[A], f: A => A, idx: K): M[A] =
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))).asInstanceOf[M[A]] else fa
     }
   }
 
@@ -197,30 +201,16 @@ package object quicklens {
 
     enum PathSymbol:
       case Field(name: String)
-      case Each(givn: Term, typeTree: TypeTree)
-      case EachWhere(givn: Term, typeTree: TypeTree, cond: Term)
-      case At(givn: Term, typeTree: TypeTree, idx: Term)
       case FunctionDelegate(name: String, givn: Term, typeTree: TypeTree, args: List[Term])
-
-    object PathSymbol {
-      def specialSymbolByName(givn: Term, methodName: String, typeTree: TypeTree, args: List[Term]): PathSymbol = methodName match {
-        case "each" => Each(givn, typeTree)
-        case "eachWhere" => EachWhere(givn, typeTree, args.head)
-        case s => FunctionDelegate(methodName, givn, typeTree, args)
-        case _ =>
-          report.error(shapeInfo)
-          ???
-      }
-    }
 
     def toPath(tree: Tree): Seq[PathSymbol] = {
       tree match {
         case Select(deep, ident) =>
           toPath(deep) :+ PathSymbol.Field(ident)
         case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(ident: Ident)) =>
-          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last, args)
+          idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, ident, typeTrees.last, args)
         case a@Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(ident: Ident)) =>
-          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last, List.empty)
+          idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, ident, typeTrees.last, List.empty)
         case Apply(deep, idents) =>
           toPath(deep) ++ idents.flatMap(toPath)
         case i: Ident if i.name.startsWith("_") =>
@@ -232,7 +222,7 @@ package object quicklens {
     }
 
     def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
-      term.tpe.typeSymbol.declaredMethod(name).head
+      term.tpe.typeSymbol.memberMethod(name).head
     }
 
     def termAccessorMethodByNameUnsafe(term: Term, name: String): (Symbol, Int) = {
@@ -258,52 +248,6 @@ package object quicklens {
           Select(objTerm, copy),
           args
         )
-      case (m: PathSymbol.Each) :: tail =>
-        val defdefSymbol = Symbol.newMethod(
-          Symbol.spliceOwner,
-          "$anonfun",
-          MethodType(List("x"))(_ => List(m.typeTree.tpe), _ => m.typeTree.tpe)
-        )
-        val mapMethod = termMethodByNameUnsafe(m.givn, "map")
-        val map = TypeApply(
-          Select(m.givn, mapMethod),
-          List(m.typeTree, m.typeTree)
-        )
-        val defdefStatements = DefDef(
-          defdefSymbol, {
-            case List(List(x)) => Some(mapToCopy(mod, x.asExpr.asTerm, tail))
-          }
-        )
-        val closure = Closure(Ref(defdefSymbol), None)
-        val block = Block(List(defdefStatements), closure)
-        Apply(map, List(objTerm, block))
-      case (m: PathSymbol.EachWhere) :: tail =>
-        val defdefSymbol = Symbol.newMethod(
-          Symbol.spliceOwner,
-          "$anonfun",
-          MethodType(List("x"))(_ => List(m.typeTree.tpe), _ => m.typeTree.tpe)
-        )
-        val mapMethod = termMethodByNameUnsafe(m.givn, "map")
-        val map = TypeApply(
-          Select(m.givn, mapMethod),
-          List(m.typeTree, m.typeTree)
-        )
-        val apply = termMethodByNameUnsafe(m.cond.asExpr.asTerm, "apply")
-        val defdefStatements = DefDef(
-          defdefSymbol, {
-            case List(List(x)) =>
-              Some(
-                If(
-                  Apply(Select(m.cond, apply), List(x.asExpr.asTerm)),
-                  mapToCopy(mod, x.asExpr.asTerm, tail),
-                  x.asExpr.asTerm
-                )
-              )
-          }
-        )
-        val closure = Closure(Ref(defdefSymbol), None)
-        val block = Block(List(defdefStatements), closure)
-        Apply(map, List(objTerm, block))
       case (f: PathSymbol.FunctionDelegate) :: tail =>
         val defdefSymbol = Symbol.newMethod(
           Symbol.spliceOwner,
