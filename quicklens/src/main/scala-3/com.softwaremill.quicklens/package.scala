@@ -111,6 +111,8 @@ package object quicklens {
 
   trait QuicklensFunctor[F[_]] {
     def map[A, B](fa: F[A], f: A => B): F[B]
+    def each[A](fa: F[A], f: A => A): F[A] = map(fa, f)
+    def eachWhere[A](fa: F[A], f: A => A, cond: A => Boolean): F[A] = map(fa, x => if cond(x) then f(x) else x)
   }
 
   object QuicklensFunctor {
@@ -127,9 +129,39 @@ package object quicklens {
     }
   }
 
+  trait QuicklensIndexedFunctor[F[_], I] {
+    def at[A](fa: F[A], f: A => A, idx: I): F[A]
+    def atOrElse[A](fa: F[A], f: A => A, idx: I, default: => A): F[A]
+    def index[A](fa: F[A], f: A => A, idx: I): F[A]
+  }
+
+  object QuicklensIndexedFunctor {
+    given QuicklensIndexedFunctor[List, Int] with {
+      def at[A](fa: List[A], f: A => A, idx: Int): List[A] =
+        fa.updated(idx, f(fa(idx)))
+      def atOrElse[A](fa: List[A], f: A => A, idx: Int, default: => A): List[A] =
+        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
+      def index[A](fa: List[A], f: A => A, idx: Int): List[A] =
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
+    }
+    given [K] : QuicklensIndexedFunctor[[A] =>> Map[K, A], K] with {
+      def at[A](fa: Map[K, A], f: A => A, idx: K): Map[K, A] =
+        fa.updated(idx, f(fa(idx)))
+      def atOrElse[A](fa: Map[K, A], f: A => A, idx: K, default: => A): Map[K, A] =
+        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
+      def index[A](fa: Map[K, A], f: A => A, idx: K): Map[K, A] =
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
+    }
+  }
+
   extension [F[_]: QuicklensFunctor, A](fa: F[A])
     def each: A = ???
     def eachWhere(cond: A => Boolean): A = ???
+
+  extension [F[_]: ([G[_]] =>> QuicklensIndexedFunctor[G, I]), I, A](fa: F[A])
+    def at(idx: I): A = ???
+    def atOrElse(idx: I, default: => A): A = ???
+    def index(idx: I): A = ???
 
   private val shapeInfo = "focus must have shape: _.field1.each.field3"
 
@@ -167,11 +199,14 @@ package object quicklens {
       case Field(name: String)
       case Each(givn: Term, typeTree: TypeTree)
       case EachWhere(givn: Term, typeTree: TypeTree, cond: Term)
+      case At(givn: Term, typeTree: TypeTree, idx: Term)
+      case FunctionDelegate(name: String, givn: Term, typeTree: TypeTree, args: List[Term])
 
     object PathSymbol {
-      def specialSymbolByName(givn: Term, methodName: String, typeTree: TypeTree, cond: Option[Term]): PathSymbol = methodName match {
+      def specialSymbolByName(givn: Term, methodName: String, typeTree: TypeTree, args: List[Term]): PathSymbol = methodName match {
         case "each" => Each(givn, typeTree)
-        case "eachWhere" => EachWhere(givn, typeTree, cond.get)
+        case "eachWhere" => EachWhere(givn, typeTree, args.head)
+        case s => FunctionDelegate(methodName, givn, typeTree, args)
         case _ =>
           report.error(shapeInfo)
           ???
@@ -182,10 +217,10 @@ package object quicklens {
       tree match {
         case Select(deep, ident) =>
           toPath(deep) :+ PathSymbol.Field(ident)
-        case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(cond)), List(ident: Ident)) =>
-          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last, Some(cond))
-        case Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(ident: Ident)) =>
-          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last, None)
+        case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(ident: Ident)) =>
+          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last, args)
+        case a@Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(ident: Ident)) =>
+          idents.flatMap(toPath) :+ PathSymbol.specialSymbolByName(ident, s, typeTrees.last, List.empty)
         case Apply(deep, idents) =>
           toPath(deep) ++ idents.flatMap(toPath)
         case i: Ident if i.name.startsWith("_") =>
@@ -206,7 +241,7 @@ package object quicklens {
       (caseFields.find(_.name == name).get, idx+1)
     }
 
-    def mapToCopy[X](mod: Expr[A => A], objTerm: Term, path: Seq[PathSymbol]): Term = path match
+    def mapToCopy(mod: Expr[A => A], objTerm: Term, path: Seq[PathSymbol]): Term = path match
       case Nil =>
         val apply = termMethodByNameUnsafe(mod.asTerm, "apply")
         Apply(Select(mod.asTerm, apply), List(objTerm))
@@ -269,6 +304,25 @@ package object quicklens {
         val closure = Closure(Ref(defdefSymbol), None)
         val block = Block(List(defdefStatements), closure)
         Apply(map, List(objTerm, block))
+      case (f: PathSymbol.FunctionDelegate) :: tail =>
+        val defdefSymbol = Symbol.newMethod(
+          Symbol.spliceOwner,
+          "$anonfun",
+          MethodType(List("x"))(_ => List(f.typeTree.tpe), _ => f.typeTree.tpe)
+        )
+        val fMethod = termMethodByNameUnsafe(f.givn, f.name)
+        val fun = TypeApply(
+          Select(f.givn, fMethod),
+          List(f.typeTree)
+        )
+        val defdefStatements = DefDef(
+          defdefSymbol, {
+            case List(List(x)) => Some(mapToCopy(mod, x.asExpr.asTerm, tail))
+          }
+        )
+        val closure = Closure(Ref(defdefSymbol), None)
+        val block = Block(List(defdefStatements), closure)
+        Apply(fun, List(objTerm, block) ++ f.args)
     
     val focusTree: Tree = focus.asTerm
     val path = focusTree match {
