@@ -167,8 +167,6 @@ package object quicklens {
     def atOrElse(idx: I, default: => A): A = ???
     def index(idx: I): A = ???
 
-  private val shapeInfo = "Path must have shape: _.field1.field2.each.field3.(...)"
-
   def toPathModify[S: Type, A: Type](obj: Expr[S], f: Expr[(A => A) => S])(using Quotes): Expr[PathModify[S, A]] = '{ PathModify( ${obj}, ${f} ) }
 
   def fromPathModify[S: Type, A: Type](pathModify: Expr[PathModify[S, A]])(using Quotes): Expr[(A => A) => S] = '{ ${pathModify}.f }
@@ -198,6 +196,8 @@ package object quicklens {
 
   def modifyImpl[S, A](obj: Expr[S], focus: Expr[S => A])(using qctx: Quotes, tpeS: Type[S], tpeA: Type[A]): Expr[PathModify[S, A]] = {
     import qctx.reflect.*
+    
+    def unsupportedShapeInfo(tree: Tree) = s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: $tree"
 
     enum PathSymbol:
       case Field(name: String)
@@ -216,7 +216,7 @@ package object quicklens {
         case i: Ident if i.name.startsWith("_") =>
           Seq.empty
         case _ =>
-          report.throwError(shapeInfo)
+          report.throwError(unsupportedShapeInfo(tree))
       }
     }
 
@@ -274,7 +274,7 @@ package object quicklens {
       case Block(List(DefDef(_, _, _, Some(p))), _) =>
         toPath(p)
       case _ =>
-        report.throwError(shapeInfo)
+        report.throwError(unsupportedShapeInfo(focusTree))
     }
 
     val objTree: Tree = obj.asTerm
