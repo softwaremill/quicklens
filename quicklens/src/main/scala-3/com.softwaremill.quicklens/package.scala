@@ -216,8 +216,7 @@ package object quicklens {
         case i: Ident if i.name.startsWith("_") =>
           Seq.empty
         case _ =>
-          report.error(shapeInfo)
-          ???
+          report.throwError(shapeInfo)
       }
     }
 
@@ -275,8 +274,7 @@ package object quicklens {
       case Block(List(DefDef(_, _, _, Some(p))), _) =>
         toPath(p)
       case _ =>
-        report.error(shapeInfo)
-        ???
+        report.throwError(shapeInfo)
     }
 
     val objTree: Tree = obj.asTerm
