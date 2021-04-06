@@ -167,7 +167,7 @@ package object quicklens {
     def atOrElse(idx: I, default: => A): A = ???
     def index(idx: I): A = ???
 
-  private val shapeInfo = "focus must have shape: _.field1.each.field3"
+  private val shapeInfo = "Path must have shape: _.field1.field2.each.field3.(...)"
 
   def toPathModify[S: Type, A: Type](obj: Expr[S], f: Expr[(A => A) => S])(using Quotes): Expr[PathModify[S, A]] = '{ PathModify( ${obj}, ${f} ) }
 
