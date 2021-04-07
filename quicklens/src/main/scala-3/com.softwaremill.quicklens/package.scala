@@ -237,20 +237,24 @@ package object quicklens {
 
   extension [T[_, _], L, R](e: T[L, R])(using f: QuicklensEitherFunctor[T, L, R])
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachLeft"))
-    def eachLeft: L = sys.error("")
+    def eachLeft: L = ???
 
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachRight"))
-    def eachRight: R = sys.error("")
+    def eachRight: R = ???
 
   extension [F[_], T](t: F[T])(using f: QuicklensSingleAtFunctor[F, T])
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
-    def at: T = sys.error("")
+    def at: T = ???
 
     @compileTimeOnly(canOnlyBeUsedInsideModify("atOrElse"))
-    def atOrElse(default: => T): T = sys.error("")
+    def atOrElse(default: => T): T = ???
 
     @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
-    def index: T = sys.error("")
+    def index: T = ???
+
+  extension [A](value: A)
+    @compileTimeOnly(canOnlyBeUsedInsideModify("when"))
+    def when[B <: A]: B = ???
 
   extension [T, U](f1: T => PathModify[T, U])
     def andThenModify[V](f2: U => PathModify[U, V]): T => PathModify[T, V] = (t: T) =>
