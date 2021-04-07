@@ -198,13 +198,13 @@ package object quicklens {
   }
 
   trait QuicklensEitherFunctor[T[_, _], L, R]:
-    def eachLeft(e: T[L, R])(f: L => L): T[L, R]
-    def eachRight(e: T[L, R])(f: R => R): T[L, R]
+    def eachLeft[A](e: T[L, R], f: L => L): T[L, R]
+    def eachRight[A](e: T[L, R], f: R => R): T[L, R]
 
   object QuicklensEitherFunctor:
     given [L, R]: QuicklensEitherFunctor[Either, L, R] with
-      override def eachLeft(e: Either[L, R])(f: (L) => L) = e.left.map(f)
-      override def eachRight(e: Either[L, R])(f: (R) => R) = e.map(f)
+      override def eachLeft[A](e: Either[L, R], f: (L) => L) = e.left.map(f)
+      override def eachRight[A](e: Either[L, R], f: (R) => R) = e.map(f)
   
   // Currently only used for [[Option]], but could be used for [[Right]]-biased [[Either]]s.
   trait QuicklensSingleAtFunctor[F[_], T]:
@@ -235,10 +235,11 @@ package object quicklens {
     @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
     def index(idx: I): A = ???
 
-  extension [T[_, _], L, R](e: T[L, R])(using f: QuicklensEitherFunctor[T, L, R])
+  extension [T[_, _]: ([E[_, _]] =>> QuicklensEitherFunctor[E, L, R]), R, L](e: T[L, R])
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachLeft"))
     def eachLeft: L = ???
 
+  extension [T[_, _]: ([E[_, _]] =>> QuicklensEitherFunctor[E, L, R]), L, R](e: T[L, R])
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachRight"))
     def eachRight: R = ???
 
@@ -304,10 +305,10 @@ package object quicklens {
       tree match {
         case Select(deep, ident) =>
           toPath(deep) :+ PathSymbol.Field(ident)
-        case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(ident: Ident)) =>
-          idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, ident, typeTrees.last, args)
-        case a@Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(ident: Ident)) =>
-          idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, ident, typeTrees.last, List.empty)
+        case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(givn)) =>
+          idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, args)
+        case a@Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(givn)) =>
+          idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
         case Apply(deep, idents) =>
           toPath(deep) ++ idents.flatMap(toPath)
         case i: Ident if i.name.startsWith("_") =>
