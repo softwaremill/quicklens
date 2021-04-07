@@ -109,6 +109,44 @@ package object quicklens {
     def setToIf(condition: Boolean)(v: A): S = if condition then setTo(v) else obj
   }
 
+  def modifyLens[T]: LensHelper[T] = LensHelper[T]()
+  def modifyAllLens[T]: MultiLensHelper[T] = MultiLensHelper[T]()
+
+  case class LensHelper[T] private[quicklens] () {
+    inline def apply[U](path: T => U): PathLazyModify[T, U] =  
+      ${ '{PathLazyModify((t, mod) => ${modifyImpl('t, 'path)}.using(mod))} }
+  }
+
+  case class MultiLensHelper[T] private[quicklens] () {
+    inline def apply[U](path1: T => U, paths: (T => U)*): PathLazyModify[T, U] =
+      ${ '{PathLazyModify((t, mod) => ${modifyAllImpl('t, 'path1, 'paths)}.using(mod))} }
+  }
+
+  case class PathLazyModify[T, U](doModify: (T, U => U) => T) { self =>
+    /** see [[PathModify.using]] */
+    def using(mod: U => U): T => T = obj => doModify(obj, mod)
+
+    /** see [[PathModify.usingIf]] */
+    def usingIf(condition: Boolean)(mod: U => U): T => T =
+      obj =>
+        if (condition) doModify(obj, mod)
+        else obj
+
+    /** see [[PathModify.setTo]] */
+    def setTo(v: U): T => T = obj => doModify(obj, _ => v)
+
+    /** see [[PathModify.setToIfDefined]] */
+    def setToIfDefined(v: Option[U]): T => T = v.fold((obj: T) => obj)(setTo)
+
+    /** see [[PathModify.setToIf]] */
+    def setToIf(condition: Boolean)(v: => U): T => T =
+      if (condition) setTo(v)
+      else obj => obj
+
+    def andThenModify[V](f2: PathLazyModify[U, V]): PathLazyModify[T, V] =
+      PathLazyModify[T, V]((t, vv) => self.doModify(t, u => f2.doModify(u, vv)))
+  }
+
   trait QuicklensFunctor[F[_]] {
     def map[A, B](fa: F[A], f: A => B): F[B]
     def each[A](fa: F[A], f: A => A): F[A] = map(fa, f)
