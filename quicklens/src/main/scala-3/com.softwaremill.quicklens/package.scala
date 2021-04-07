@@ -114,7 +114,7 @@ package object quicklens {
   def modifyAllLens[T]: MultiLensHelper[T] = MultiLensHelper[T]()
 
   case class LensHelper[T] private[quicklens] () {
-    inline def apply[U](path: T => U): PathLazyModify[T, U] =  
+    inline def apply[U](path: T => U): PathLazyModify[T, U] =
       ${ '{PathLazyModify((t, mod) => ${modifyImpl('t, 'path)}.using(mod))} }
   }
 
@@ -202,17 +202,25 @@ package object quicklens {
     def eachRight(e: T[L, R])(f: R => R): T[L, R]
 
   object QuicklensEitherFunctor:
-    given [L, R]: QuicklensEitherFunctor[Either, L, R] with 
+    given [L, R]: QuicklensEitherFunctor[Either, L, R] with
       override def eachLeft(e: Either[L, R])(f: (L) => L) = e.left.map(f)
       override def eachRight(e: Either[L, R])(f: (R) => R) = e.map(f)
 
   extension [F[_]: QuicklensFunctor, A](fa: F[A])
+    @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: A = ???
+    
+    @compileTimeOnly(canOnlyBeUsedInsideModify("eachWhere"))
     def eachWhere(cond: A => Boolean): A = ???
 
   extension [F[_]: ([G[_]] =>> QuicklensIndexedFunctor[G, I]), I, A](fa: F[A])
+    @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: I): A = ???
+    
+    @compileTimeOnly(canOnlyBeUsedInsideModify("atOrElse"))
     def atOrElse(idx: I, default: => A): A = ???
+    
+    @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
     def index(idx: I): A = ???
 
   extension [T[_, _], L, R](e: T[L, R])(using f: QuicklensEitherFunctor[T, L, R])
@@ -221,11 +229,11 @@ package object quicklens {
 
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachRight"))
     def eachRight: R = sys.error("")
-  
+
   private def canOnlyBeUsedInsideModify(method: String) = s"$method can only be used as a path component inside modify"
-    
+
   //
-  
+
   def toPathModify[S: Type, A: Type](obj: Expr[S], f: Expr[(A => A) => S])(using Quotes): Expr[PathModify[S, A]] = '{ PathModify( ${obj}, ${f} ) }
 
   def fromPathModify[S: Type, A: Type](pathModify: Expr[PathModify[S, A]])(using Quotes): Expr[(A => A) => S] = '{ ${pathModify}.f }
