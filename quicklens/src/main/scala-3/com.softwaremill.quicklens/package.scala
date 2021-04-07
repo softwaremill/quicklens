@@ -297,20 +297,28 @@ package object quicklens {
     
     def unsupportedShapeInfo(tree: Tree) = s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: $tree"
 
+    def methodSupported(method: String) =
+      Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index").contains(method)
+
     enum PathSymbol:
       case Field(name: String)
       case FunctionDelegate(name: String, givn: Term, typeTree: TypeTree, args: List[Term])
 
     def toPath(tree: Tree): Seq[PathSymbol] = {
       tree match {
+        /** Field access */
         case Select(deep, ident) =>
           toPath(deep) :+ PathSymbol.Field(ident)
-        case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(givn)) =>
+        /** Method call with arguments and using instance */
+        case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, args)
-        case a@Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(givn)) =>
+        /** Method call with no arguments and using instance */
+        case a@Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
+        /** Field access */
         case Apply(deep, idents) =>
           toPath(deep) ++ idents.flatMap(toPath)
+        /** Wild card from path */
         case i: Ident if i.name.startsWith("_") =>
           Seq.empty
         case _ =>
@@ -345,6 +353,13 @@ package object quicklens {
           Select(objTerm, copy),
           args
         )
+      /**
+        * For FunctionDelegate(method, givn, T, args)
+        * 
+        * Generates:
+        *   `givn.method[T](obj, x => mapToCopy(...), ...args)`
+        * 
+        */
       case (f: PathSymbol.FunctionDelegate) :: tail =>
         val defdefSymbol = Symbol.newMethod(
           Symbol.spliceOwner,
@@ -367,8 +382,10 @@ package object quicklens {
     
     val focusTree: Tree = focus.asTerm
     val path = focusTree match {
+      /** Single inlined path */
       case Inlined(_, _, Block(List(DefDef(_, _, _, Some(p))), _)) =>
         toPath(p)
+      /** One of paths from modifyAll, stripped from `Inlined` in modifyAllImpl */
       case Block(List(DefDef(_, _, _, Some(p))), _) =>
         toPath(p)
       case _ =>
