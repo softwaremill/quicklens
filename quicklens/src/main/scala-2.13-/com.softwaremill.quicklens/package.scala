@@ -123,9 +123,9 @@ package object quicklens {
     }
   }
 
-  def modify[T]: LensHelper[T] = LensHelper[T]()
+  def modifyLens[T]: LensHelper[T] = LensHelper[T]()
 
-  def modifyAll[T]: MultiLensHelper[T] = MultiLensHelper[T]()
+  def modifyAllLens[T]: MultiLensHelper[T] = MultiLensHelper[T]()
 
   case class LensHelper[T] private () {
 

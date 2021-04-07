@@ -153,10 +153,10 @@ If `props` contains an entry for `"NumReports"`, then `.atOrElse` behaves the sa
 parameter is never evaluated. If there is no entry, then `.atOrElse` will make one using the second parameter
  and perform subsequent modifications on the newly instantiated default.
  
- For Options, `.atOrElse` takes no arguments and acts similarly. 
+For Options, `.atOrElse` takes no arguments and acts similarly. 
  
  ````scala
- person.modify(_.addresses.at(2).street.atOrElse(Street("main street")).name).using(_.toUpperCase)
+person.modify(_.addresses.at(2).street.atOrElse(Street("main street")).name).using(_.toUpperCase)
  ````
  
  `.atOrElse` is currently not available for sequences because quicklens might need to insert many
@@ -215,14 +215,14 @@ Alternate syntax:
 ````scala
 import com.softwaremill.quicklens._
 
-val modifyStreetName = modify[Person](_.address.street.name)
+val modifyStreetName = modifyLens[Person](_.address.street.name)
 
 val p3 = modifyStreetName.using(_.toUpperCase)(person)
 val p4 = modifyStreetName.using(_.toLowerCase)(anotherPerson)
 
 //
 
-val upperCaseStreetName = modify[Person](_.address.street.name).using(_.toUpperCase)
+val upperCaseStreetName = modifyLens[Person](_.address.street.name).using(_.toUpperCase)
 
 val p5 = upperCaseStreetName(person)
 ````
@@ -241,8 +241,8 @@ or, with alternate syntax:
 ````scala
 import com.softwaremill.quicklens._
 
-val modifyAddress = modify[Person](_.address)
-val modifyStreetName = modify[Address](_.street.name)
+val modifyAddress = modifyLens[Person](_.address)
+val modifyStreetName = modifyLens[Address](_.street.name)
 
 val p6 = (modifyAddress andThenModify modifyStreetName).using(_.toUpperCase)(person)
 ````
