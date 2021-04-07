@@ -230,6 +230,10 @@ package object quicklens {
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachRight"))
     def eachRight: R = sys.error("")
 
+  extension [T, U](f1: T => PathModify[T, U])
+    def andThenModify[V](f2: U => PathModify[U, V]): T => PathModify[T, V] = (t: T) =>
+      PathModify[T, V](t, vv => f1(t).f(u => f2(u).f(vv)))
+
   private def canOnlyBeUsedInsideModify(method: String) = s"$method can only be used as a path component inside modify"
 
   //
