@@ -205,6 +205,18 @@ package object quicklens {
     given [L, R]: QuicklensEitherFunctor[Either, L, R] with
       override def eachLeft(e: Either[L, R])(f: (L) => L) = e.left.map(f)
       override def eachRight(e: Either[L, R])(f: (R) => R) = e.map(f)
+  
+  // Currently only used for [[Option]], but could be used for [[Right]]-biased [[Either]]s.
+  trait QuicklensSingleAtFunctor[F[_], T]:
+    def at(fa: F[T])(f: T => T): F[T]
+    def atOrElse(fa: F[T], default: => T)(f: T => T): F[T]
+    def index(fa: F[T])(f: T => T): F[T]
+
+  object QuicklensSingleAtFunctor:
+    given [A]: QuicklensSingleAtFunctor[Option, A] with
+      override def at(fa: Option[A])(f: A => A): Option[A] = Some(fa.map(f).get)
+      override def atOrElse(fa: Option[A], default: => A)(f: A => A): Option[A] = fa.orElse(Some(default)).map(f)
+      override def index(fa: Option[A])(f: A => A): Option[A] = fa.map(f)
 
   extension [F[_]: QuicklensFunctor, A](fa: F[A])
     @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
@@ -229,6 +241,16 @@ package object quicklens {
 
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachRight"))
     def eachRight: R = sys.error("")
+
+  extension [F[_], T](t: F[T])(using f: QuicklensSingleAtFunctor[F, T])
+    @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
+    def at: T = sys.error("")
+
+    @compileTimeOnly(canOnlyBeUsedInsideModify("atOrElse"))
+    def atOrElse(default: => T): T = sys.error("")
+
+    @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
+    def index: T = sys.error("")
 
   extension [T, U](f1: T => PathModify[T, U])
     def andThenModify[V](f2: U => PathModify[U, V]): T => PathModify[T, V] = (t: T) =>
