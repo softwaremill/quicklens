@@ -385,7 +385,7 @@ package object quicklens {
       /** Single inlined path */
       case Inlined(_, _, Block(List(DefDef(_, _, _, Some(p))), _)) =>
         toPath(p)
-      /** One of paths from modifyAll, stripped from `Inlined` in modifyAllImpl */
+      /** One of paths from modifyAll */
       case Block(List(DefDef(_, _, _, Some(p))), _) =>
         toPath(p)
       case _ =>
