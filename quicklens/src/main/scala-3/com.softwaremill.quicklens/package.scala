@@ -1,5 +1,6 @@
 package com.softwaremill
 
+import scala.annotation.compileTimeOnly
 import scala.quoted.*
 
 package object quicklens {
@@ -196,6 +197,15 @@ package object quicklens {
     }
   }
 
+  trait QuicklensEitherFunctor[T[_, _], L, R]:
+    def eachLeft(e: T[L, R])(f: L => L): T[L, R]
+    def eachRight(e: T[L, R])(f: R => R): T[L, R]
+
+  object QuicklensEitherFunctor:
+    given [L, R]: QuicklensEitherFunctor[Either, L, R] with 
+      override def eachLeft(e: Either[L, R])(f: (L) => L) = e.left.map(f)
+      override def eachRight(e: Either[L, R])(f: (R) => R) = e.map(f)
+
   extension [F[_]: QuicklensFunctor, A](fa: F[A])
     def each: A = ???
     def eachWhere(cond: A => Boolean): A = ???
@@ -205,6 +215,17 @@ package object quicklens {
     def atOrElse(idx: I, default: => A): A = ???
     def index(idx: I): A = ???
 
+  extension [T[_, _], L, R](e: T[L, R])(using f: QuicklensEitherFunctor[T, L, R])
+    @compileTimeOnly(canOnlyBeUsedInsideModify("eachLeft"))
+    def eachLeft: L = sys.error("")
+
+    @compileTimeOnly(canOnlyBeUsedInsideModify("eachRight"))
+    def eachRight: R = sys.error("")
+  
+  private def canOnlyBeUsedInsideModify(method: String) = s"$method can only be used as a path component inside modify"
+    
+  //
+  
   def toPathModify[S: Type, A: Type](obj: Expr[S], f: Expr[(A => A) => S])(using Quotes): Expr[PathModify[S, A]] = '{ PathModify( ${obj}, ${f} ) }
 
   def fromPathModify[S: Type, A: Type](pathModify: Expr[PathModify[S, A]])(using Quotes): Expr[(A => A) => S] = '{ ${pathModify}.f }
