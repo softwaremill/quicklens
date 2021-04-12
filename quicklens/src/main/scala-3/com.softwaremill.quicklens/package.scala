@@ -191,7 +191,7 @@ package object quicklens {
       def at[A](fa: M[A], f: A => A, idx: K): M[A] =
         fa.updated(idx, f(fa(idx))).asInstanceOf[M[A]]
       def atOrElse[A](fa: M[A], f: A => A, idx: K, default: => A): M[A] =
-        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default)))).asInstanceOf[M[A]]
+        fa.updated(idx, f(fa.applyOrElse(idx, _ => default))).asInstanceOf[M[A]]
       def index[A](fa: M[A], f: A => A, idx: K): M[A] =
         if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))).asInstanceOf[M[A]] else fa
     }
