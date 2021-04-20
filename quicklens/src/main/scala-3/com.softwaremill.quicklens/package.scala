@@ -303,6 +303,7 @@ package object quicklens {
     enum PathSymbol:
       case Field(name: String)
       case FunctionDelegate(name: String, givn: Term, typeTree: TypeTree, args: List[Term])
+      case WhenSubtype(subtypeTree: TypeTree)
 
     def toPath(tree: Tree): Seq[PathSymbol] = {
       tree match {
@@ -313,8 +314,11 @@ package object quicklens {
         case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, args)
         /** Method call with no arguments and using instance */
-        case a@Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(givn)) if methodSupported(s) =>
+        case Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
+        /** Subtype check using .when */
+        case TypeApply(Apply(TypeApply(Ident("when"), _), nested), List(subtypeTree)) =>
+          nested.flatMap(toPath) :+ PathSymbol.WhenSubtype(subtypeTree)
         /** Field access */
         case Apply(deep, idents) =>
           toPath(deep) ++ idents.flatMap(toPath)
@@ -379,7 +383,14 @@ package object quicklens {
         val closure = Closure(Ref(defdefSymbol), None)
         val block = Block(List(defdefStatements), closure)
         Apply(fun, List(objTerm, block) ++ f.args)
-    
+      case PathSymbol.WhenSubtype(subtypeTree) :: tail =>
+        val whenSubtype = Symbol.newBind(Symbol.spliceOwner, "x", Flags.EmptyFlags, subtypeTree.tpe)
+        val whenOther = Symbol.newBind(Symbol.spliceOwner, "y", Flags.EmptyFlags, objTerm.tpe)
+        Match(objTerm, List(
+          CaseDef(Bind(whenSubtype, Typed(objTerm, subtypeTree)), None, mapToCopy(mod, Ref(whenSubtype), tail)),
+          CaseDef(whenOther.tree, None, Ref(whenOther))
+        ))
+
     val focusTree: Tree = focus.asTerm
     val path = focusTree match {
       /** Single inlined path */
