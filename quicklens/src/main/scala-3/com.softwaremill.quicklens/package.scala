@@ -218,6 +218,16 @@ package object quicklens {
       override def atOrElse[A](fa: Option[A], f: A => A, default: => A): Option[A] = fa.orElse(Some(default)).map(f)
       override def index[A](fa: Option[A], f: A => A): Option[A] = fa.map(f)
 
+  trait QuicklensWhen[A]:
+    inline def when[B <: A](a: A, f: B => B): A
+
+  object QuicklensWhen:
+    given [A] : QuicklensWhen[A] with
+      override inline def when[B <: A](a: A, f: B => B): A =
+        a match
+          case b: B => f(b)
+          case _ => a
+
   extension [F[_]: QuicklensFunctor, A](fa: F[A])
     @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: A = ???
@@ -253,7 +263,7 @@ package object quicklens {
     @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
     def index: T = ???
 
-  extension [A](value: A)
+  extension [A: QuicklensWhen](value: A)
     @compileTimeOnly(canOnlyBeUsedInsideModify("when"))
     def when[B <: A]: B = ???
 
@@ -298,27 +308,26 @@ package object quicklens {
     def unsupportedShapeInfo(tree: Tree) = s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: $tree"
 
     def methodSupported(method: String) =
-      Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index").contains(method)
+      Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index", "when").contains(method)
 
     enum PathSymbol:
       case Field(name: String)
       case FunctionDelegate(name: String, givn: Term, typeTree: TypeTree, args: List[Term])
-      case WhenSubtype(subtypeTree: TypeTree)
 
     def toPath(tree: Tree): Seq[PathSymbol] = {
       tree match {
         /** Field access */
         case Select(deep, ident) =>
           toPath(deep) :+ PathSymbol.Field(ident)
-        /** Method call with arguments and using instance */
+        /** Method call with arguments and using clause */
         case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, args)
-        /** Method call with no arguments and using instance */
+        /** Method call with no arguments and using clause */
         case Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
-        /** Subtype check using .when */
-        case TypeApply(Apply(TypeApply(Ident("when"), _), nested), List(subtypeTree)) =>
-          nested.flatMap(toPath) :+ PathSymbol.WhenSubtype(subtypeTree)
+        /** Method call with one type parameter and using clause */
+        case a@Apply(TypeApply(Apply(TypeApply(Ident(s), _), idents), typeTrees), List(givn)) if methodSupported(s) =>
+          idents.flatMap(toPath) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
         /** Field access */
         case Apply(deep, idents) =>
           toPath(deep) ++ idents.flatMap(toPath)
@@ -383,13 +392,6 @@ package object quicklens {
         val closure = Closure(Ref(defdefSymbol), None)
         val block = Block(List(defdefStatements), closure)
         Apply(fun, List(objTerm, block) ++ f.args)
-      case PathSymbol.WhenSubtype(subtypeTree) :: tail =>
-        val whenSubtype = Symbol.newBind(Symbol.spliceOwner, "x", Flags.EmptyFlags, subtypeTree.tpe)
-        val whenOther = Symbol.newBind(Symbol.spliceOwner, "y", Flags.EmptyFlags, objTerm.tpe)
-        Match(objTerm, List(
-          CaseDef(Bind(whenSubtype, Typed(objTerm, subtypeTree)), None, mapToCopy(mod, Ref(whenSubtype), tail)),
-          CaseDef(whenOther.tree, None, Ref(whenOther))
-        ))
 
     val focusTree: Tree = focus.asTerm
     val path = focusTree match {
