@@ -353,25 +353,44 @@ package object quicklens {
       (caseFields.find(_.name == name).get, idx+1)
     }
 
+    def caseClassCopy(mod: Expr[A => A], obj: Term, field: PathSymbol.Field, tail: Seq[PathSymbol]): Term =
+      if (!obj.tpe.typeSymbol.flags.is(Flags.Case)) then
+        report.throwError(s"Unsupported source object: must be a case class or sealed trait, but got: $obj")
+
+      val copy = termMethodByNameUnsafe(obj, "copy")
+      val (fieldMethod, idx) = termAccessorMethodByNameUnsafe(obj, field.name)
+      val namedArg = NamedArg(field.name, mapToCopy(mod, Select(obj, fieldMethod), tail))
+      val fieldsIdxs = 1.to(obj.tpe.typeSymbol.caseFields.length)
+      val args = fieldsIdxs.map { i =>
+        if(i == idx) namedArg
+        else Select(obj, termMethodByNameUnsafe(obj, "copy$default$" + i.toString))
+      }.toList
+
+      obj.tpe.widen match {
+        // if the object's type is parametrised, we need to call .copy with the same type parameters
+        case AppliedType(_, typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
+        case _ => Apply(Select(obj, copy), args)
+      }
+
     def mapToCopy(mod: Expr[A => A], objTerm: Term, path: Seq[PathSymbol]): Term = path match
       case Nil =>
         val apply = termMethodByNameUnsafe(mod.asTerm, "apply")
         Apply(Select(mod.asTerm, apply), List(objTerm))
       case (field: PathSymbol.Field) :: tail =>
-        val copy = termMethodByNameUnsafe(objTerm, "copy")
-        val (fieldMethod, idx) = termAccessorMethodByNameUnsafe(objTerm, field.name)
-        val namedArg = NamedArg(field.name, mapToCopy(mod, Select(objTerm, fieldMethod), tail))
-        val fieldsIdxs = 1.to(objTerm.tpe.typeSymbol.caseFields.length)
-        val args = fieldsIdxs.map { i =>
-          if(i == idx) namedArg
-          else Select(objTerm, termMethodByNameUnsafe(objTerm, "copy$default$" + i.toString))
-        }.toList
+        val objSymbol = objTerm.tpe.typeSymbol
+        if (objSymbol.flags.is(Flags.Case)) then
+          caseClassCopy(mod, objTerm, field, tail)
+        else if (objSymbol.flags.is(Flags.Sealed) && objSymbol.flags.is(Flags.Trait)) then
+          // if the source is a sealed trait, generating a pattern match with a .copy for each child (implementing case class)
+          val cases = objTerm.tpe.typeSymbol.children.map { child =>
+            val subtype = TypeIdent(child)
+            val bind = Symbol.newBind(Symbol.spliceOwner, "c", Flags.EmptyFlags, subtype.tpe)
+            CaseDef(Bind(bind, Typed(objTerm, subtype)), None, caseClassCopy(mod, Ref(bind), field, tail))
+          }
+          Match(objTerm, cases)
 
-        objTerm.tpe.widen match {
-          // if the object's type is parametrised, we need to call .copy with the same type parameters
-          case AppliedType(_, typeParams) => Apply(TypeApply(Select(objTerm, copy), typeParams.map(Inferred(_))), args)
-          case _ => Apply(Select(objTerm, copy), args)
-        }
+        else
+          report.throwError(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol")
 
       /**
         * For FunctionDelegate(method, givn, T, args)
