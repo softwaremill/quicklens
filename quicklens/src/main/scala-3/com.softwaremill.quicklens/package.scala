@@ -114,14 +114,18 @@ package object quicklens {
   def modifyAllLens[T]: MultiLensHelper[T] = MultiLensHelper[T]()
 
   case class LensHelper[T] private[quicklens] () {
-    inline def apply[U](path: T => U): PathLazyModify[T, U] =
-      ${ '{PathLazyModify((t, mod) => ${modifyImpl('t, 'path)}.using(mod))} }
+    inline def apply[U](inline path: T => U): PathLazyModify[T, U] = ${ modifyLensApplyImpl('path) }
   }
 
+  private def modifyLensApplyImpl[T, U](path: Expr[T => U])(using Quotes, Type[T], Type[U]): Expr[PathLazyModify[T, U]] =
+    '{PathLazyModify((t, mod) => ${modifyImpl('t, path)}.using(mod))}
+
   case class MultiLensHelper[T] private[quicklens] () {
-    inline def apply[U](path1: T => U, paths: (T => U)*): PathLazyModify[T, U] =
-      ${ '{PathLazyModify((t, mod) => ${modifyAllImpl('t, 'path1, 'paths)}.using(mod))} }
+    inline def apply[U](inline path1: T => U, inline paths: (T => U)*): PathLazyModify[T, U] = ${ modifyAllLensApplyImpl('path1, 'paths) }
   }
+
+  private def modifyAllLensApplyImpl[T, U](path1: Expr[T => U], paths: Expr[Seq[T => U]])(using Quotes, Type[T], Type[U]): Expr[PathLazyModify[T, U]] =
+    '{PathLazyModify((t, mod) => ${modifyAllImpl('t, path1, paths)}.using(mod))}
 
   case class PathLazyModify[T, U](doModify: (T, U => U) => T) { self =>
     /** see [[PathModify.using]] */
