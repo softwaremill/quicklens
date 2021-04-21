@@ -362,10 +362,13 @@ package object quicklens {
           if(i == idx) namedArg
           else Select(objTerm, termMethodByNameUnsafe(objTerm, "copy$default$" + i.toString))
         }.toList
-        Apply(
-          Select(objTerm, copy),
-          args
-        )
+
+        objTerm.tpe.widen match {
+          // if the object's type is parametrised, we need to call .copy with the same type parameters
+          case AppliedType(_, typeParams) => Apply(TypeApply(Select(objTerm, copy), typeParams.map(Inferred(_))), args)
+          case _ => Apply(Select(objTerm, copy), args)
+        }
+
       /**
         * For FunctionDelegate(method, givn, T, args)
         * 
