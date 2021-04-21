@@ -1,5 +1,6 @@
 package com.softwaremill
 
+import scala.collection.Factory
 import scala.annotation.compileTimeOnly
 import scala.quoted.*
 
@@ -172,7 +173,7 @@ package object quicklens {
     }
 
     given [K, M <: ([V] =>> Map[K, V])] : QuicklensFunctor[M] with {
-      def map[A, B](fa: M[A], f: A => B): M[B] = fa.view.mapValues(f).toMap.asInstanceOf[M[B]]
+      def map[A, B](fa: M[A], f: A => B): M[B] = fa.view.mapValues(f).to(fa.mapFactory.mapFactory[K, B]).asInstanceOf[M[B]]
     }
   }
 
@@ -308,7 +309,7 @@ package object quicklens {
 
   def modifyImpl[S, A](obj: Expr[S], focus: Expr[S => A])(using qctx: Quotes, tpeS: Type[S], tpeA: Type[A]): Expr[PathModify[S, A]] = {
     import qctx.reflect.*
-    
+
     def unsupportedShapeInfo(tree: Tree) = s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: $tree"
 
     def methodSupported(method: String) =
