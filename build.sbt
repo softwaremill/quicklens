@@ -5,7 +5,7 @@ val scala3 = "3.0.0-RC3"
 
 val buildSettings = Seq(
   organization := "com.softwaremill.quicklens",
-  scalacOptions := Seq("-deprecation", "-feature", "-unchecked"),
+  scalacOptions := Seq("-deprecation", "-feature", "-unchecked"), // useful for debugging macros: "-Ycheck:all"
   // Sonatype OSS deployment
   publishTo := Some(
     if (isSnapshot.value)

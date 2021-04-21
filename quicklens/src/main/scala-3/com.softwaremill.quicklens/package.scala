@@ -353,15 +353,15 @@ package object quicklens {
       (caseFields.find(_.name == name).get, idx+1)
     }
 
-    def caseClassCopy(mod: Expr[A => A], obj: Term, field: PathSymbol.Field, tail: Seq[PathSymbol]): Term =
+    def caseClassCopy(owner: Symbol, mod: Expr[A => A], obj: Term, field: PathSymbol.Field, tail: Seq[PathSymbol]): Term =
       val objSymbol = obj.tpe.typeSymbol
-      if (objSymbol.flags.is(Flags.Case)) then
+      if objSymbol.flags.is(Flags.Case) then
         val copy = termMethodByNameUnsafe(obj, "copy")
         val (fieldMethod, idx) = termAccessorMethodByNameUnsafe(obj, field.name)
-        val namedArg = NamedArg(field.name, mapToCopy(mod, Select(obj, fieldMethod), tail))
+        val namedArg = NamedArg(field.name, mapToCopy(owner, mod, Select(obj, fieldMethod), tail))
         val fieldsIdxs = 1.to(obj.tpe.typeSymbol.caseFields.length)
         val args = fieldsIdxs.map { i =>
-          if(i == idx) namedArg
+          if i == idx then namedArg
           else Select(obj, termMethodByNameUnsafe(obj, "copy$default$" + i.toString))
         }.toList
 
@@ -370,24 +370,24 @@ package object quicklens {
           case AppliedType(_, typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
           case _ => Apply(Select(obj, copy), args)
         }
-      else if (objSymbol.flags.is(Flags.Sealed) && objSymbol.flags.is(Flags.Trait)) then
+      else if objSymbol.flags.is(Flags.Sealed) && objSymbol.flags.is(Flags.Trait) then
         // if the source is a sealed trait, generating a pattern match with a .copy for each child (implementing case class)
         val cases = obj.tpe.typeSymbol.children.map { child =>
           val subtype = TypeIdent(child)
-          val bind = Symbol.newBind(Symbol.spliceOwner, "c", Flags.EmptyFlags, subtype.tpe)
-          CaseDef(Bind(bind, Typed(obj, subtype)), None, caseClassCopy(mod, Ref(bind), field, tail))
+          val bind = Symbol.newBind(owner, "c", Flags.EmptyFlags, subtype.tpe)
+          CaseDef(Bind(bind, Typed(Ref(bind), subtype)), None, caseClassCopy(owner, mod, Ref(bind), field, tail))
         }
         Match(obj, cases)
 
       else
         report.throwError(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol")
 
-    def mapToCopy(mod: Expr[A => A], objTerm: Term, path: Seq[PathSymbol]): Term = path match
+    def mapToCopy(owner: Symbol, mod: Expr[A => A], objTerm: Term, path: Seq[PathSymbol]): Term = path match
       case Nil =>
         val apply = termMethodByNameUnsafe(mod.asTerm, "apply")
         Apply(Select(mod.asTerm, apply), List(objTerm))
       case (field: PathSymbol.Field) :: tail =>
-        caseClassCopy(mod, objTerm, field, tail)
+        caseClassCopy(owner, mod, objTerm, field, tail)
 
       /**
         * For FunctionDelegate(method, givn, T, args)
@@ -398,7 +398,7 @@ package object quicklens {
         */
       case (f: PathSymbol.FunctionDelegate) :: tail =>
         val defdefSymbol = Symbol.newMethod(
-          Symbol.spliceOwner,
+          owner,
           "$anonfun",
           MethodType(List("x"))(_ => List(f.typeTree.tpe), _ => f.typeTree.tpe)
         )
@@ -409,7 +409,7 @@ package object quicklens {
         )
         val defdefStatements = DefDef(
           defdefSymbol, {
-            case List(List(x)) => Some(mapToCopy(mod, x.asExpr.asTerm, tail))
+            case List(List(x)) => Some(mapToCopy(defdefSymbol, mod, x.asExpr.asTerm, tail))
           }
         )
         val closure = Closure(Ref(defdefSymbol), None)
@@ -433,7 +433,7 @@ package object quicklens {
       case Inlined(_, _, term) => term
     }
     
-    val res: (Expr[A => A] => Expr[S]) = (mod: Expr[A => A]) => mapToCopy(mod, objTerm, path).asExpr.asInstanceOf[Expr[S]]
+    val res: (Expr[A => A] => Expr[S]) = (mod: Expr[A => A]) => mapToCopy(Symbol.spliceOwner, mod, objTerm, path).asExpr.asInstanceOf[Expr[S]]
     toPathModify(obj, to(res))
   }
 }
