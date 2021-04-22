@@ -1,6 +1,6 @@
 val scala211 = "2.11.12"
-val scala212 = "2.12.12"
-val scala213 = "2.13.4"
+val scala212 = "2.12.13"
+val scala213 = "2.13.5"
 val scala3 = "3.0.0-RC3"
 
 val buildSettings = Seq(
@@ -46,10 +46,10 @@ lazy val root =
     .aggregate(quicklens.projectRefs: _*)
 
 val versionSpecificScalaSources = {
-  unmanagedSourceDirectories in Compile := {
-    val current = (unmanagedSourceDirectories in Compile).value
-    val sv = (scalaVersion in Compile).value
-    val baseDirectory = (scalaSource in Compile).value
+  Compile / unmanagedSourceDirectories := {
+    val current = (Compile / unmanagedSourceDirectories).value
+    val sv = (Compile / scalaVersion).value
+    val baseDirectory = (Compile / scalaSource).value
     val suffixes = CrossVersion.partialVersion(sv) match {
       case Some((2, 13)) => List("2", "2.13+")
       case Some((2, _)) => List("2", "2.13-")
