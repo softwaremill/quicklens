@@ -101,14 +101,33 @@ object QuicklensMacros {
           case _ => Apply(Select(obj, copy), args)
         }
       else if (objSymbol.flags.is(Flags.Sealed) && objSymbol.flags.is(Flags.Trait)) || objSymbol.flags.is(Flags.Enum) then
-        // if the source is a sealed trait / enum, generating a pattern match with a .copy for each child (implementing case class)
+        // if the source is a sealed trait / enum, generating a if-then-else with a .copy for each child (implementing case class)
         val cases = obj.tpe.typeSymbol.children.map { child =>
           val subtype = TypeIdent(child)
           val bind = Symbol.newBind(owner, "c", Flags.EmptyFlags, subtype.tpe)
           CaseDef(Bind(bind, Typed(Ref(bind), subtype)), None, caseClassCopy(owner, mod, Ref(bind), field, tail))
         }
-        Match(obj, cases)
 
+        /*
+        if (obj.isInstanceOf[Child1]) caseClassCopy(obj.asInstanceOf[Child1]) else
+        if (obj.isInstanceOf[Child2]) caseClassCopy(obj.asInstanceOf[Child2]) else
+        ...
+        else throw new IllegalStateException()
+         */
+        val ifThens = obj.tpe.typeSymbol.children.map { child =>
+          val ifCond = TypeApply(Select.unique(obj, "isInstanceOf"), List(TypeIdent(child)))
+
+          val ifThen = ValDef.let(owner, TypeApply(Select.unique(obj, "asInstanceOf"), List(TypeIdent(child)))) { castToChildVal =>
+            caseClassCopy(owner, mod, castToChildVal, field, tail)
+          }
+
+          ifCond -> ifThen
+        }
+
+        val elseThrow = '{throw new IllegalStateException()}.asTerm
+        ifThens.foldRight(elseThrow) { case ((ifCond, ifThen), ifElse) =>
+          If(ifCond, ifThen, ifElse)
+        }
       else
         report.throwError(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol")
 
