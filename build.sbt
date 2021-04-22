@@ -66,7 +66,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     scalaVersions = List(scala211, scala212, scala213, scala3)
   )
   .jsPlatform(
-    scalaVersions = List(scala212, scala213, scala3)
+    scalaVersions = List(scala212, scala213) // TODO: add scala3
   )
   .nativePlatform(
     scalaVersions = List(scala211, scala212, scala213),
