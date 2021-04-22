@@ -1,10 +1,11 @@
 val scala211 = "2.11.12"
 val scala212 = "2.12.12"
 val scala213 = "2.13.4"
+val scala3 = "3.0.0-RC3"
 
 val buildSettings = Seq(
   organization := "com.softwaremill.quicklens",
-  scalacOptions := Seq("-deprecation", "-feature", "-unchecked"),
+  scalacOptions := Seq("-deprecation", "-feature", "-unchecked"), // useful for debugging macros: "-Ycheck:all"
   // Sonatype OSS deployment
   publishTo := Some(
     if (isSnapshot.value)
@@ -59,28 +60,43 @@ val versionSpecificScalaSources = {
   }
 }
 
+def compilerLibrary(scalaVersion: String) = {
+  if (scalaVersion == scala3) {
+    Seq.empty
+  } else {
+    Seq("org.scala-lang" % "scala-compiler" % scalaVersion % Test)
+  }
+}
+
+def reflectLibrary(scalaVersion: String) = {
+  if (scalaVersion == scala3) {
+    Seq.empty
+  } else {
+    Seq("org.scala-lang" % "scala-reflect" % scalaVersion % Provided)
+  }
+}
+
 lazy val quicklens = (projectMatrix in file("quicklens"))
   .settings(buildSettings)
   .settings(
     name := "quicklens",
-    libraryDependencies += "org.scala-lang" % "scala-reflect" % scalaVersion.value % Provided,
+    libraryDependencies ++= reflectLibrary(scalaVersion.value),
     Test / publishArtifact := false,
-    libraryDependencies ++= Seq("org.scala-lang" % "scala-compiler" % scalaVersion.value % Test),
+    libraryDependencies ++= compilerLibrary(scalaVersion.value),
     versionSpecificScalaSources,
     libraryDependencies ++= Seq("flatspec", "shouldmatchers").map(m =>
-      "org.scalatest" %%% s"scalatest-$m" % "3.2.3" % Test
+      "org.scalatest" %%% s"scalatest-$m" % "3.2.8" % Test
     )
   )
   .jvmPlatform(
-    scalaVersions = List(scala211, scala212, scala213)
+    scalaVersions = List(scala211, scala212, scala213, scala3)
   )
   .jsPlatform(
-    scalaVersions = List(scala212, scala213)
+    scalaVersions = List(scala212, scala213, scala3)
   )
   .nativePlatform(
     scalaVersions = List(scala211),
     settings = Seq(
-      libraryDependencies ++= Seq("org.scala-native" %%% "test-interface" % "0.4.0-M2" % Test),
       nativeLinkStubs := true
     )
   )

@@ -7,3 +7,8 @@ out
 .js
 .jvm
 .native
+.metals/
+.bloop/
+project/**/metals.sbt
+.vscode/
+.bsp

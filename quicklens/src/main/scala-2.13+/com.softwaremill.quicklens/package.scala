@@ -122,9 +122,9 @@ package object quicklens {
     }
   }
 
-  def modify[T]: LensHelper[T] = LensHelper[T]()
+  def modifyLens[T]: LensHelper[T] = LensHelper[T]()
 
-  def modifyAll[T]: MultiLensHelper[T] = MultiLensHelper[T]()
+  def modifyAllLens[T]: MultiLensHelper[T] = MultiLensHelper[T]()
 
   case class LensHelper[T] private () {
 
@@ -270,7 +270,7 @@ package object quicklens {
     override def atOrElse(fa: M[K, T], key: K, default: => T)(f: T => T): M[K, T] =
       fa.updated(key, f(fa.getOrElse(key, default))).to(fac)
     override def index(fa: M[K, T], key: K)(f: T => T): M[K, T] =
-        fa.get(key).map(f).fold(fa)(t => fa.updated(key, t).to(fac))
+      fa.get(key).map(f).fold(fa)(t => fa.updated(key, t).to(fac))
     override def each(fa: M[K, T])(f: (T) => T): M[K, T] = {
       fa.view.mapValues(f).to(fac)
     }
