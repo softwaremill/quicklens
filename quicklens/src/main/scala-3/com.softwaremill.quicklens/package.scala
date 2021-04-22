@@ -1,6 +1,6 @@
 package com.softwaremill
 
-import scala.collection.Factory
+import scala.collection.{Factory, SortedMap}
 import scala.annotation.compileTimeOnly
 import scala.quoted.*
 
@@ -173,7 +173,13 @@ package object quicklens {
     }
 
     given [K, M <: ([V] =>> Map[K, V])] : QuicklensFunctor[M] with {
-      def map[A, B](fa: M[A], f: A => B): M[B] = fa.view.mapValues(f).to(fa.mapFactory.mapFactory[K, B]).asInstanceOf[M[B]]
+      def map[A, B](fa: M[A], f: A => B): M[B] = {
+        val mapped = fa.view.mapValues(f)
+        (fa match {
+          case sfa: SortedMap[A, B] => sfa.sortedMapFactory.from(mapped)(using sfa.ordering)
+          case _ => mapped.to(fa.mapFactory)
+        }).asInstanceOf[M[B]]
+      }
     }
   }
 
