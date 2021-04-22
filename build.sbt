@@ -5,16 +5,19 @@ val scala212 = "2.12.13"
 val scala213 = "2.13.5"
 val scala3 = "3.0.0-RC3"
 
-val buildSettings = commonSmlBuildSettings ++ ossPublishSettings ++ Seq(
+excludeLintKeys in Global ++= Set(ideSkipProject)
+
+val commonSettings = commonSmlBuildSettings ++ ossPublishSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
   updateDocs := UpdateVersionInDocs(sLog.value, organization.value, version.value, List(file("README.md"))),
-  scalacOptions := Seq("-deprecation", "-feature", "-unchecked") // useful for debugging macros: "-Ycheck:all"
+  scalacOptions := Seq("-deprecation", "-feature", "-unchecked"), // useful for debugging macros: "-Ycheck:all"
+  ideSkipProject := (scalaVersion.value != scala3)
 )
 
 lazy val root =
   project
     .in(file("."))
-    .settings(buildSettings)
+    .settings(commonSettings)
     .settings(publishArtifact := false)
     .aggregate(quicklens.projectRefs: _*)
 
@@ -51,7 +54,7 @@ def reflectLibrary(scalaVersion: String) = {
 }
 
 lazy val quicklens = (projectMatrix in file("quicklens"))
-  .settings(buildSettings)
+  .settings(commonSettings)
   .settings(
     name := "quicklens",
     libraryDependencies ++= reflectLibrary(scalaVersion.value),
