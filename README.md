@@ -1,7 +1,7 @@
 ![Quicklens](https://github.com/softwaremill/quicklens/raw/master/banner.png)
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.11)
-[![Build Status](https://travis-ci.org/softwaremill/quicklens.svg?branch=master)](https://travis-ci.org/softwaremill/quicklens)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.13/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.softwaremill.quicklens/quicklens_2.13)
+[![CI](https://github.com/softwaremill/quicklens/workflows/CI/badge.svg)](https://github.com/softwaremill/quicklens/actions?query=workflow%3A%22CI%22)
 
 **Modify deeply nested fields in case classes:**
 
@@ -248,10 +248,7 @@ val p6 = (modifyAddress andThenModify modifyStreetName).using(_.toUpperCase)(per
 ````
 
 
-**Modify nested sealed hierarchies:**
-
-> *Note: this feature is experimental and might not work due to compilation order issues.
-> See https://issues.scala-lang.org/browse/SI-7046 for more details.*
+**Modify nested sealed hierarchies & enums:**
 
 ````scala
 import com.softwaremill.quicklens._
@@ -271,8 +268,7 @@ val juniorPets = pets.modify(_.each.name).using(_ + ", Jr.")
 
 ---
 
-Similar to lenses ([1](http://eed3si9n.com/learning-scalaz/Lens.html),
-[2](https://github.com/julien-truffaut/Monocle)), but without the actual lens creation.
+Also check out [Monocle](https://github.com/julien-truffaut/Monocle), for a more advanced [lens](http://eed3si9n.com/learning-scalaz/Lens.html) library.
 
 Read [the blog](http://www.warski.org/blog/2015/02/quicklens-modify-deeply-nested-case-class-fields/) for more info.
 
@@ -282,7 +278,7 @@ Available in Maven Central:
 val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.6.1"
 ````
 
-Also available for [Scala.js](http://www.scala-js.org) and [Scala Native](http://www.scala-native.org)!
+Available for Scala 2.11, 2.12, 2.13, [3](https://dotty.epfl.ch), [Scala.js](http://www.scala-js.org) and [Scala Native](http://www.scala-native.org)!
 
 ## Commercial Support
 
@@ -290,4 +286,4 @@ We offer commercial support for Quicklens and related technologies, as well as d
 
 ## Copyright
 
-Copyright (C) 2015-2019 SoftwareMill [https://softwaremill.com](https://softwaremill.com).
+Copyright (C) 2015-2021 SoftwareMill [https://softwaremill.com](https://softwaremill.com).

@@ -1,41 +1,14 @@
+import com.softwaremill.UpdateVersionInDocs
+
 val scala211 = "2.11.12"
 val scala212 = "2.12.13"
 val scala213 = "2.13.5"
 val scala3 = "3.0.0-RC3"
 
-val buildSettings = Seq(
+val buildSettings = commonSmlBuildSettings ++ ossPublishSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
-  scalacOptions := Seq("-deprecation", "-feature", "-unchecked"), // useful for debugging macros: "-Ycheck:all"
-  // Sonatype OSS deployment
-  publishTo := Some(
-    if (isSnapshot.value)
-      Opts.resolver.sonatypeSnapshots
-    else
-      Opts.resolver.sonatypeStaging
-  ),
-  credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
-  publishMavenStyle := true,
-  publishArtifact in Test := false,
-  pomIncludeRepository := { _ =>
-    false
-  },
-  developers := List(
-    Developer("adamw", "Adam Warski", "adam@warski.org", url("http://www.warski.org"))
-  ),
-  scmInfo := Some(
-    ScmInfo(
-      browseUrl = url("https://github.com/adamw/quicklens"),
-      connection = "scm:git:git@github.com:adamw/quicklens.git"
-    )
-  ),
-  licenses := Seq("Apache2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
-  homepage := Some(url("http://www.softwaremill.com")),
-  sonatypeProfileName := "com.softwaremill",
-  // sbt-release
-  releaseCrossBuild := false,
-  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  releaseIgnoreUntrackedFiles := true,
-  releaseProcess := QuicklensRelease.steps
+  updateDocs := UpdateVersionInDocs(sLog.value, organization.value, version.value, List(file("README.md"))),
+  scalacOptions := Seq("-deprecation", "-feature", "-unchecked") // useful for debugging macros: "-Ycheck:all"
 )
 
 lazy val root =
@@ -52,8 +25,9 @@ val versionSpecificScalaSources = {
     val baseDirectory = (Compile / scalaSource).value
     val suffixes = CrossVersion.partialVersion(sv) match {
       case Some((2, 13)) => List("2", "2.13+")
-      case Some((2, _)) => List("2", "2.13-")
-      case Some((3, _)) => List("3")
+      case Some((2, _))  => List("2", "2.13-")
+      case Some((3, _))  => List("3")
+      case _             => Nil
     }
     val versionSpecificSources = suffixes.map(s => new File(baseDirectory.getAbsolutePath + "-" + s))
     versionSpecificSources ++ current
