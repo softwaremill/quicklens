@@ -5,13 +5,15 @@ val scala212 = "2.12.13"
 val scala213 = "2.13.5"
 val scala3 = "3.0.0-RC3"
 
+val scalaIdeaVersion = scala3 // the version for which to import sources into intellij
+
 excludeLintKeys in Global ++= Set(ideSkipProject)
 
 val commonSettings = commonSmlBuildSettings ++ ossPublishSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
   updateDocs := UpdateVersionInDocs(sLog.value, organization.value, version.value, List(file("README.md"))),
   scalacOptions := Seq("-deprecation", "-feature", "-unchecked"), // useful for debugging macros: "-Ycheck:all"
-  ideSkipProject := (scalaVersion.value != scala3)
+  ideSkipProject := (scalaVersion.value != scalaIdeaVersion)
 )
 
 lazy val root =
@@ -19,6 +21,7 @@ lazy val root =
     .in(file("."))
     .settings(commonSettings)
     .settings(publishArtifact := false)
+    .settings(scalaVersion := scalaIdeaVersion)
     .aggregate(quicklens.projectRefs: _*)
 
 val versionSpecificScalaSources = {
