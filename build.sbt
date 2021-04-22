@@ -1,5 +1,4 @@
 import com.softwaremill.UpdateVersionInDocs
-import com.softwaremill.SbtSoftwareMillBrowserTestJS._
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.13"
@@ -67,8 +66,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     scalaVersions = List(scala211, scala212, scala213, scala3)
   )
   .jsPlatform(
-    scalaVersions = List(scala212, scala213, scala3),
-    settings = browserChromeTestSettings
+    scalaVersions = List(scala212, scala213, scala3)
   )
   .nativePlatform(
     scalaVersions = List(scala211, scala212, scala213),
