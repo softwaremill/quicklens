@@ -17,8 +17,8 @@ object QuicklensMacros {
   def modifyAllLensApplyImpl[T, U](path1: Expr[T => U], paths: Expr[Seq[T => U]])(using Quotes, Type[T], Type[U]): Expr[PathLazyModify[T, U]] =
     '{PathLazyModify((t, mod) => ${modifyAllImpl('t, path1, paths)}.using(mod))}
 
-  def modifyAllImpl[S, A](obj: Expr[S], focus: Expr[S => A], focusesExpr: Expr[Seq[S => A]])(using qctx: Quotes, tpeS: Type[S], tpeA: Type[A]): Expr[PathModify[S, A]] = {
-    import qctx.reflect.*
+  def modifyAllImpl[S, A](obj: Expr[S], focus: Expr[S => A], focusesExpr: Expr[Seq[S => A]])(using Quotes, Type[S], Type[A]): Expr[PathModify[S, A]] = {
+    import quotes.reflect.*
 
     val focuses = focusesExpr match {
       case Varargs(args) => args
@@ -36,8 +36,8 @@ object QuicklensMacros {
     toPathModify(obj, modF)
   }
 
-  def modifyImpl[S, A](obj: Expr[S], focus: Expr[S => A])(using qctx: Quotes, tpeS: Type[S], tpeA: Type[A]): Expr[PathModify[S, A]] = {
-    import qctx.reflect.*
+  def modifyImpl[S, A](obj: Expr[S], focus: Expr[S => A])(using Quotes, Type[S], Type[A]): Expr[PathModify[S, A]] = {
+    import quotes.reflect.*
 
     def unsupportedShapeInfo(tree: Tree) = s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: $tree"
 
