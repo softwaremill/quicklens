@@ -5,49 +5,26 @@ import scala.annotation.compileTimeOnly
 import com.softwaremill.quicklens.QuicklensMacros._
 
 package object quicklens {
-  trait ModifyPimp {
-    extension [S, A](inline obj: S)
-      /**
-        * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
-        * via `path` on the given `obj`.
-        *
-        * All modifications are side-effect free and create copies of the original objects.
-        *
-        * You can use `.each` to traverse options, lists, etc.
-        */
-      inline def modify(inline path: S => A): PathModify[S, A] = ${ modifyImpl('obj, 'path) }
-      /**
-        * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
-        * via `paths` on the given `obj`.
-        *
-        * All modifications are side-effect free and create copies of the original objects.
-        *
-        * You can use `.each` to traverse options, lists, etc.
-        */
-      inline def modifyAll(inline path: S => A, inline paths: (S => A)*) : PathModify[S, A] = ${ modifyAllImpl('obj, 'path, 'paths) }
-  }
 
-  given modifyPimp: ModifyPimp with {}
-
-  /**
-    * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
-    * via `path` on the given `obj`.
-    *
-    * All modifications are side-effect free and create copies of the original objects.
-    *
-    * You can use `.each` to traverse options, lists, etc.
-    */
-  inline def modify[S, A](inline obj: S)(inline path: S => A): PathModify[S, A] =${ modifyImpl('obj, 'path) }
-
-  /**
-    * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
-    * via `paths` on the given `obj`.
-    *
-    * All modifications are side-effect free and create copies of the original objects.
-    *
-    * You can use `.each` to traverse options, lists, etc.
-    */
-  inline def modifyAll[S, A](inline obj: S)(inline path: S => A, inline paths: (S => A)*) : PathModify[S, A] = ${ modifyAllImpl('obj, 'path, 'paths) }
+  extension [S, A](inline obj: S)
+    /**
+      * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
+      * via `path` on the given `obj`.
+      *
+      * All modifications are side-effect free and create copies of the original objects.
+      *
+      * You can use `.each` to traverse options, lists, etc.
+      */
+    inline def modify(inline path: S => A): PathModify[S, A] = ${ modifyImpl('obj, 'path) }
+    /**
+      * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
+      * via `paths` on the given `obj`.
+      *
+      * All modifications are side-effect free and create copies of the original objects.
+      *
+      * You can use `.each` to traverse options, lists, etc.
+      */
+    inline def modifyAll(inline path: S => A, inline paths: (S => A)*) : PathModify[S, A] = ${ modifyAllImpl('obj, 'path, 'paths) }
 
   case class PathModify[S, A](obj: S, f: (A => A) => S) {
     

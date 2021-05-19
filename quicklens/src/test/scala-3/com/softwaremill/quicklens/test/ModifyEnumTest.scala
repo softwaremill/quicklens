@@ -1,8 +1,10 @@
-package com.softwaremill.quicklens
+package com.softwaremill.quicklens.test
 
 import com.softwaremill.quicklens.TestData.duplicate
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
+import com.softwaremill.quicklens._
 
 object EnumTestData {
   enum P3(val a: String):
@@ -18,5 +20,9 @@ class ModifyEnumTest extends AnyFlatSpec with Matchers {
 
   it should "modify a field in an enum case" in {
     modify(p3)(_.a).using(duplicate) should be(p3dup)
+  }
+
+  it should "modify a field in an enum case with extension method" in {
+    p3.modify(_.a).using(duplicate) should be(p3dup)
   }
 }
