@@ -39,7 +39,7 @@ object QuicklensMacros {
   def modifyImpl[S, A](obj: Expr[S], focus: Expr[S => A])(using Quotes, Type[S], Type[A]): Expr[PathModify[S, A]] = {
     import quotes.reflect.*
 
-    def unsupportedShapeInfo(tree: Tree) = s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: $tree"
+    def unsupportedShapeInfo(tree: Tree) = s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: ${tree.show}"
 
     def methodSupported(method: String) =
       Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index", "when").contains(method)
@@ -69,7 +69,7 @@ object QuicklensMacros {
         case i: Ident if i.name.startsWith("_") =>
           Seq.empty
         case _ =>
-          report.throwError(unsupportedShapeInfo(tree))
+          report.throwError(unsupportedShapeInfo(focus.asTerm))
       }
     }
 
