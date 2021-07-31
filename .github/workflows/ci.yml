@@ -20,13 +20,7 @@ jobs:
       with:
         java-version: 11
     - name: Cache sbt
-      uses: actions/cache@v2
-      with:
-        path: |
-          ~/.sbt
-          ~/.ivy2/cache
-          ~/.coursier
-        key: sbt-cache-${{ runner.os }}-${{ hashFiles('project/build.properties') }}
+      uses: coursier/cache-action@v6.2
     - name: Compile
       run: sbt -v compile
     - name: Test
@@ -55,13 +49,7 @@ jobs:
         with:
           java-version: 11
       - name: Cache sbt
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.sbt
-            ~/.ivy2/cache
-            ~/.coursier
-          key: sbt-cache-release-${{ runner.os }}-${{ hashFiles('project/build.properties') }}
+        uses: coursier/cache-action@v6.2
       - name: Compile
         run: sbt compile
       - name: Publish artifacts
