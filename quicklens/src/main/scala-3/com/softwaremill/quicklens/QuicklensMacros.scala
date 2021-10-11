@@ -177,12 +177,7 @@ object QuicklensMacros {
         report.throwError(unsupportedShapeInfo(focusTree))
     }
 
-    val objTree: Tree = obj.asTerm
-    val objTerm: Term = objTree match {
-      case Inlined(_, _, term) => term
-    }
-
-    val res: (Expr[A => A] => Expr[S]) = (mod: Expr[A => A]) => mapToCopy(Symbol.spliceOwner, mod, objTerm, path).asExpr.asInstanceOf[Expr[S]]
+    val res: (Expr[A => A] => Expr[S]) = (mod: Expr[A => A]) => mapToCopy(Symbol.spliceOwner, mod, obj.asTerm, path).asExpr.asInstanceOf[Expr[S]]
     toPathModify(obj, to(res))
   }
 }
