@@ -1,5 +1,7 @@
 package com.softwaremill
 
+import com.softwaremill.quicklens.{QuicklensMapAtFunctor, canOnlyBeUsedInsideModify}
+
 import scala.annotation.compileTimeOnly
 import scala.collection.TraversableLike
 import scala.collection.SeqLike
@@ -7,9 +9,9 @@ import scala.collection.generic.CanBuildFrom
 import scala.language.experimental.macros
 import scala.language.higherKinds
 
-package object quicklens {
+package object quicklens extends LowPriorityImplicits {
 
-  private def canOnlyBeUsedInsideModify(method: String) =
+  private[softwaremill] def canOnlyBeUsedInsideModify(method: String) =
     s"$method can only be used inside modify"
 
   /**
@@ -178,14 +180,6 @@ package object quicklens {
       PathLazyModify[T, V]((t, vv) => self.doModify(t, u => f2.doModify(u, vv)))
   }
 
-  implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T]) {
-    @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
-    def each: T = sys.error("")
-
-    @compileTimeOnly(canOnlyBeUsedInsideModify("eachWhere"))
-    def eachWhere(p: T => Boolean): T = sys.error("")
-  }
-
   trait QuicklensFunctor[F[_], A] {
     def map(fa: F[A])(f: A => A): F[A]
     def each(fa: F[A])(f: A => A): F[A] = map(fa)(f)
@@ -241,8 +235,8 @@ package object quicklens {
     def index(fa: F[T], idx: Int)(f: T => T): F[T]
   }
 
-  implicit class QuicklensMapAt[M[KT, TT] <: Map[KT, TT], K, T](t: M[K, T])(
-      implicit f: QuicklensMapAtFunctor[M, K, T]
+  implicit class QuicklensMapAt[M[KT, TT], K, T](t: M[K, T])(
+    implicit f: QuicklensMapAtFunctor[M, K, T]
   ) {
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: K): T = sys.error("")
@@ -315,4 +309,17 @@ package object quicklens {
       override def eachLeft(e: Either[L, R])(f: (L) => L) = e.left.map(f)
       override def eachRight(e: Either[L, R])(f: (R) => R) = e.right.map(f)
     }
+}
+
+sealed trait LowPriorityImplicits {
+
+  import quicklens._
+
+  implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T]) {
+    @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
+    def each: T = sys.error("")
+
+    @compileTimeOnly(canOnlyBeUsedInsideModify("eachWhere"))
+    def eachWhere(p: T => Boolean): T = sys.error("")
+  }
 }
