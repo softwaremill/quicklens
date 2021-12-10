@@ -310,6 +310,9 @@ sealed trait LowPriorityImplicits {
 
   import quicklens._
 
+  /**
+    * `QuicklensEach` is in `LowPriorityImplicits` to not conflict with the `QuicklensMapAtFunctor` on `each` calls.
+    */
   implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T]) {
     @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: T = sys.error("")
