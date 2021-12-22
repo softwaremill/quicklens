@@ -13,9 +13,8 @@ package object quicklens extends LowPriorityImplicits {
   private[softwaremill] def canOnlyBeUsedInsideModify(method: String) =
     s"$method can only be used inside modify"
 
-  /**
-    * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
-    * via `path` on the given `obj`.
+  /** Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy via
+    * `path` on the given `obj`.
     *
     * All modifications are side-effect free and create copies of the original objects.
     *
@@ -23,9 +22,8 @@ package object quicklens extends LowPriorityImplicits {
     */
   def modify[T, U](obj: T)(path: T => U): PathModify[T, U] = macro QuicklensMacros.modify_impl[T, U]
 
-  /**
-    * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
-    * via `paths` on the given `obj`.
+  /** Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy via
+    * `paths` on the given `obj`.
     *
     * All modifications are side-effect free and create copies of the original objects.
     *
@@ -36,9 +34,8 @@ package object quicklens extends LowPriorityImplicits {
 
   implicit class ModifyPimp[T](t: T) {
 
-    /**
-      * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
-      * via `path` on the given `obj`.
+    /** Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy via
+      * `path` on the given `obj`.
       *
       * All modifications are side-effect free and create copies of the original objects.
       *
@@ -46,9 +43,8 @@ package object quicklens extends LowPriorityImplicits {
       */
     def modify[U](path: T => U): PathModify[T, U] = macro QuicklensMacros.modifyPimp_impl[T, U]
 
-    /**
-      * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
-      * via `paths` on the given `obj`.
+    /** Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy via
+      * `paths` on the given `obj`.
       *
       * All modifications are side-effect free and create copies of the original objects.
       *
@@ -59,16 +55,16 @@ package object quicklens extends LowPriorityImplicits {
 
   case class PathModify[T, U](obj: T, doModify: (T, U => U) => T) {
 
-    /**
-      * Transform the value of the field(s) using the given function.
+    /** Transform the value of the field(s) using the given function.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) modified.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) modified.
       */
     def using(mod: U => U): T = doModify(obj, mod)
 
-    /** An alias for [[using]]. Explicit calls to [[using]] are preferred over this alias, but quicklens provides
-      * this option because code auto-formatters (like scalafmt) will generally not keep [[modify]]/[[using]]
-      * pairs on the same line, leading to code like
+    /** An alias for [[using]]. Explicit calls to [[using]] are preferred over this alias, but quicklens provides this
+      * option because code auto-formatters (like scalafmt) will generally not keep [[modify]]/[[using]] pairs on the
+      * same line, leading to code like
       * {{{
       * x
       *   .modify(_.foo)
@@ -82,38 +78,37 @@ package object quicklens extends LowPriorityImplicits {
       *   .modify(_.foo)(newFoo :: _)
       *   .modify(_.bar)(_ + newBar)
       * }}}
-      * */
+      */
     final def apply(mod: U => U): T = using(mod)
 
-    /**
-      * Transform the value of the field(s) using the given function, if the condition is true. Otherwise, returns the
+    /** Transform the value of the field(s) using the given function, if the condition is true. Otherwise, returns the
       * original object unchanged.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) modified, if `condition` is true.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) modified, if `condition` is true.
       */
     def usingIf(condition: Boolean)(mod: U => U): T = if (condition) doModify(obj, mod) else obj
 
-    /**
-      * Set the value of the field(s) to a new value.
+    /** Set the value of the field(s) to a new value.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) set to the new value.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) set to the new value.
       */
     def setTo(v: U): T = doModify(obj, _ => v)
 
-    /**
-      * Set the value of the field(s) to a new value, if it is defined. Otherwise, returns the original object
+    /** Set the value of the field(s) to a new value, if it is defined. Otherwise, returns the original object
       * unchanged.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) set to the new value, if it is defined.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) set to the new value, if it is defined.
       */
     def setToIfDefined(v: Option[U]): T = v.fold(obj)(setTo)
 
-    /**
-      * Set the value of the field(s) to a new value, if the condition is true. Otherwise, returns the original object
+    /** Set the value of the field(s) to a new value, if the condition is true. Otherwise, returns the original object
       * unchanged.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) set to the new value, if `condition` is
-      *         true.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) set to the new value, if `condition` is true.
       */
     def setToIf(condition: Boolean)(v: => U): T = if (condition) setTo(v) else obj
   }
@@ -142,38 +137,32 @@ package object quicklens extends LowPriorityImplicits {
 
     self =>
 
-    /**
-      * see [[PathModify.using]]
+    /** see [[PathModify.using]]
       */
     def using(mod: U => U): T => T = obj => doModify(obj, mod)
 
-    /**
-      * see [[PathModify.usingIf]]
+    /** see [[PathModify.usingIf]]
       */
     def usingIf(condition: Boolean)(mod: U => U): T => T =
       obj =>
         if (condition) doModify(obj, mod)
         else obj
 
-    /**
-      * see [[PathModify.setTo]]
+    /** see [[PathModify.setTo]]
       */
     def setTo(v: U): T => T = obj => doModify(obj, _ => v)
 
-    /**
-      * see [[PathModify.setToIfDefined]]
+    /** see [[PathModify.setToIfDefined]]
       */
     def setToIfDefined(v: Option[U]): T => T = v.fold((obj: T) => obj)(setTo)
 
-    /**
-      * see [[PathModify.setToIf]]
+    /** see [[PathModify.setToIf]]
       */
     def setToIf(condition: Boolean)(v: => U): T => T =
       if (condition) setTo(v)
       else obj => obj
 
-    /**
-      * see [[AbstractPathModifyPimp]]
+    /** see [[AbstractPathModifyPimp]]
       */
     def andThenModify[V](f2: PathLazyModify[U, V]): PathLazyModify[T, V] =
       PathLazyModify[T, V]((t, vv) => self.doModify(t, u => f2.doModify(u, vv)))
@@ -213,8 +202,8 @@ package object quicklens extends LowPriorityImplicits {
     def index: T = sys.error("")
   }
 
-  implicit def traversableQuicklensFunctor[F[_], A](
-      implicit fac: Factory[A, F[A]],
+  implicit def traversableQuicklensFunctor[F[_], A](implicit
+      fac: Factory[A, F[A]],
       ev: F[A] => Iterable[A]
   ): QuicklensFunctor[F, A] =
     new QuicklensFunctor[F, A] {
@@ -233,8 +222,8 @@ package object quicklens extends LowPriorityImplicits {
     def index(fa: F[T], idx: Int)(f: T => T): F[T]
   }
 
-  implicit class QuicklensMapAt[M[KT, TT], K, T](t: M[K, T])(
-    implicit f: QuicklensMapAtFunctor[M, K, T]
+  implicit class QuicklensMapAt[M[KT, TT], K, T](t: M[K, T])(implicit
+      f: QuicklensMapAtFunctor[M, K, T]
   ) {
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: K): T = sys.error("")
@@ -256,8 +245,8 @@ package object quicklens extends LowPriorityImplicits {
     def each(fa: F[K, T])(f: T => T): F[K, T]
   }
 
-  implicit def mapQuicklensFunctor[M[KT, TT] <: Map[KT, TT], K, T](
-      implicit fac: Factory[(K, T), M[K, T]]
+  implicit def mapQuicklensFunctor[M[KT, TT] <: Map[KT, TT], K, T](implicit
+      fac: Factory[(K, T), M[K, T]]
   ): QuicklensMapAtFunctor[M, K, T] = new QuicklensMapAtFunctor[M, K, T] {
     override def at(fa: M[K, T], key: K)(f: T => T): M[K, T] =
       fa.updated(key, f(fa(key))).to(fac)
@@ -270,14 +259,14 @@ package object quicklens extends LowPriorityImplicits {
     }
   }
 
-  implicit def seqQuicklensAtFunctor[F[_], T](
-      implicit fac: Factory[T, F[T]],
+  implicit def seqQuicklensAtFunctor[F[_], T](implicit
+      fac: Factory[T, F[T]],
       ev: F[T] => Seq[T]
   ): QuicklensAtFunctor[F, T] =
     new QuicklensAtFunctor[F, T] {
-      override def at(fa: F[T], idx: Int)(f: T => T):F[T] =
+      override def at(fa: F[T], idx: Int)(f: T => T): F[T] =
         fa.updated(idx, f(fa(idx))).to(fac)
-      override def index(fa: F[T], idx: Int)(f: T => T):F[T] =
+      override def index(fa: F[T], idx: Int)(f: T => T): F[T] =
         if (idx < fa.size) fa.updated(idx, f(fa(idx))).to(fac) else fa
     }
 
@@ -310,8 +299,7 @@ sealed trait LowPriorityImplicits {
 
   import quicklens._
 
-  /**
-    * `QuicklensEach` is in `LowPriorityImplicits` to not conflict with the `QuicklensMapAtFunctor` on `each` calls.
+  /** `QuicklensEach` is in `LowPriorityImplicits` to not conflict with the `QuicklensMapAtFunctor` on `each` calls.
     */
   implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T]) {
     @compileTimeOnly(canOnlyBeUsedInsideModify("each"))

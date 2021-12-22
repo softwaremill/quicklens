@@ -6,23 +6,20 @@ import scala.reflect.macros.blackbox
 object QuicklensMacros {
   private val ShapeInfo = "Path must have shape: _.field1.field2.each.field3.(...)"
 
-  /**
-    * modify(a)(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
+  /** modify(a)(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
     */
   def modify_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(obj: c.Expr[T])(
       path: c.Expr[T => U]
   ): c.Tree = modifyUnwrapped(c)(obj, modificationForPath(c)(path))
 
-  /**
-    * modifyAll(a)(_.b.c, _.d.e) => new PathMod(a, << chained modifications >>)
+  /** modifyAll(a)(_.b.c, _.d.e) => new PathMod(a, << chained modifications >>)
     */
   def modifyAll_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(obj: c.Expr[T])(
       path1: c.Expr[T => U],
       paths: c.Expr[T => U]*
   ): c.Tree = modifyUnwrapped(c)(obj, modificationsForPaths(c)(path1, paths))
 
-  /**
-    * A helper method for modify_impl and modifyAll_impl.
+  /** A helper method for modify_impl and modifyAll_impl.
     */
   private def modifyUnwrapped[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       obj: c.Expr[T],
@@ -32,23 +29,20 @@ object QuicklensMacros {
     q"_root_.com.softwaremill.quicklens.PathModify($obj, $modifications)"
   }
 
-  /**
-    * modify[A](_.b.c) => a => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
+  /** modify[A](_.b.c) => a => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
     */
   def modifyLazy_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       path: c.Expr[T => U]
   ): c.Tree = modifyLazyUnwrapped(c)(modificationForPath(c)(path))
 
-  /**
-    * modifyAll[A](_.b.c, _.d.e) => a => new PathMod(a, << chained modifications >>)
+  /** modifyAll[A](_.b.c, _.d.e) => a => new PathMod(a, << chained modifications >>)
     */
   def modifyLazyAll_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       path1: c.Expr[T => U],
       paths: c.Expr[T => U]*
   ): c.Tree = modifyLazyUnwrapped(c)(modificationsForPaths(c)(path1, paths))
 
-  /**
-    * A helper method for modify_impl and modifyAll_impl.
+  /** A helper method for modify_impl and modifyAll_impl.
     */
   private def modifyLazyUnwrapped[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       modifications: c.Tree
@@ -57,23 +51,20 @@ object QuicklensMacros {
     q"_root_.com.softwaremill.quicklens.PathLazyModify($modifications)"
   }
 
-  /**
-    * a.modify(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
+  /** a.modify(_.b.c) => new PathMod(a, (A, F) => A.copy(b = A.b.copy(c = F(A.b.c))))
     */
   def modifyPimp_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       path: c.Expr[T => U]
   ): c.Tree = modifyWrapped(c)(modificationForPath(c)(path))
 
-  /**
-    * a.modify(_.b.c, _.d.e) =>  new PathMod(a, << chained modifications >>)
+  /** a.modify(_.b.c, _.d.e) => new PathMod(a, << chained modifications >>)
     */
   def modifyAllPimp_impl[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       path1: c.Expr[T => U],
       paths: c.Expr[T => U]*
   ): c.Tree = modifyWrapped(c)(modificationsForPaths(c)(path1, paths))
 
-  /**
-    * A helper method for modifyPimp_impl and modifyAllPimp_impl.
+  /** A helper method for modifyPimp_impl and modifyAllPimp_impl.
     */
   def modifyWrapped[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       modifications: c.Tree
@@ -82,7 +73,7 @@ object QuicklensMacros {
 
     val wrappedValue = c.macroApplication match {
       case Apply(TypeApply(Select(Apply(_, List(w)), _), _), _) => w
-      case _                                                    => c.abort(c.enclosingPosition, s"Unknown usage of ModifyPimp. Please file a bug.")
+      case _ => c.abort(c.enclosingPosition, s"Unknown usage of ModifyPimp. Please file a bug.")
     }
 
     val valueAlias = TermName(c.freshName())
@@ -93,8 +84,7 @@ object QuicklensMacros {
      }"""
   }
 
-  /**
-    * Compose modifications generated for each path, from left to right.
+  /** Compose modifications generated for each path, from left to right.
     */
   private def modificationsForPaths[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       path1: c.Expr[T => U],
@@ -106,10 +96,9 @@ object QuicklensMacros {
     val modifierName = TermName(c.freshName())
 
     val modification1 = q"${modificationForPath(c)(path1)}($valueName, $modifierName)"
-    val chained = paths.foldLeft(modification1) {
-      case (tree, path) =>
-        val modification = modificationForPath(c)(path)
-        q"$modification($tree, $modifierName)"
+    val chained = paths.foldLeft(modification1) { case (tree, path) =>
+      val modification = modificationForPath(c)(path)
+      q"$modification($tree, $modifierName)"
     }
 
     val valueArg = q"val $valueName: ${weakTypeOf[T]}"
@@ -117,8 +106,7 @@ object QuicklensMacros {
     q"($valueArg, $modifierArg) => $chained"
   }
 
-  /**
-    * Produce a modification for a single path.
+  /** Produce a modification for a single path.
     */
   private def modificationForPath[T: c.WeakTypeTag, U: c.WeakTypeTag](c: blackbox.Context)(
       path: c.Expr[T => U]
@@ -134,9 +122,8 @@ object QuicklensMacros {
     case class SubtypePathElement(subtype: c.Symbol) extends PathElement
     case class FunctorPathElement(functor: c.Tree, method: c.TermName, xargs: c.Tree*) extends PathElement
 
-    /**
-      * Determine if the `.copy` method should be applied directly
-      * or through a match across all subclasses (for sealed traits).
+    /** Determine if the `.copy` method should be applied directly or through a match across all subclasses (for sealed
+      * traits).
       */
     def determinePathAccess(typeSymbol: Symbol) = {
       def ifEmpty[A](set: Set[A], empty: => Set[A]) =
@@ -167,8 +154,7 @@ object QuicklensMacros {
       if (subclasses.isEmpty) DirectPathAccess else SealedPathAccess(subclasses)
     }
 
-    /**
-      * _.a.b.each.c => List(TPE(a), TPE(b), FPE(functor, each/at/eachWhere, xargs), TPE(c))
+    /** _.a.b.each.c => List(TPE(a), TPE(b), FPE(functor, each/at/eachWhere, xargs), TPE(c))
       */
     @tailrec
     def collectPathElements(tree: c.Tree, acc: List[PathElement]): List[PathElement] = {
@@ -198,8 +184,7 @@ object QuicklensMacros {
       }
     }
 
-    /**
-      * (x, List(TPE(c), TPE(b), FPE(functor, method, xargs), TPE(a))) => x.b.c
+    /** (x, List(TPE(c), TPE(b), FPE(functor, method, xargs), TPE(a))) => x.b.c
       */
     def generateSelects(rootPathEl: c.TermName, reversePathEls: List[PathElement]): c.Tree = {
       @tailrec
@@ -223,14 +208,9 @@ object QuicklensMacros {
       go(terms(reversePathEls, Nil), Ident(rootPathEl))
     }
 
-    /**
-      * (tree, DirectPathAccess) => f(tree)
+    /** (tree, DirectPathAccess) => f(tree)
       *
-      * (tree, SealedPathAccess(Set(T1, T2, ...)) => tree match {
-      *   case x1: T1 => f(x1)
-      *   case x2: T2 => f(x2)
-      *   ...
-      * }
+      * (tree, SealedPathAccess(Set(T1, T2, ...)) => tree match { case x1: T1 => f(x1) case x2: T2 => f(x2) ... }
       */
     def generateAccess(tree: c.Tree, access: PathAccess)(f: c.Tree => c.Tree) = access match {
       case DirectPathAccess => f(tree)
@@ -242,9 +222,8 @@ object QuicklensMacros {
         q"$tree match { case ..$cases }"
     }
 
-    /**
-      * (a, List(TPE(d), TPE(c), FPE(functor, method, xargs), TPE(b)), k) =>
-      *   (aa, aa.copy(b = functor.method(aa.b, xargs)(a => a.copy(c = a.c.copy(d = k)))
+    /** (a, List(TPE(d), TPE(c), FPE(functor, method, xargs), TPE(b)), k) => (aa, aa.copy(b = functor.method(aa.b,
+      * xargs)(a => a.copy(c = a.c.copy(d = k)))
       */
     def generateCopies(
         rootPathEl: c.TermName,

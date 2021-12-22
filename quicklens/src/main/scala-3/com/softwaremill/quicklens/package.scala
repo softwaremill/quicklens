@@ -7,37 +7,38 @@ import com.softwaremill.quicklens.QuicklensMacros._
 package object quicklens {
 
   extension [S, A](inline obj: S)
-    /**
-      * Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy
-      * via `path` on the given `obj`.
+    /** Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy via
+      * `path` on the given `obj`.
       *
       * All modifications are side-effect free and create copies of the original objects.
       *
       * You can use `.each` to traverse options, lists, etc.
       */
     inline def modify(inline path: S => A): PathModify[S, A] = ${ modifyImpl('obj, 'path) }
-    /**
-      * Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy
-      * via `paths` on the given `obj`.
+
+    /** Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy via
+      * `paths` on the given `obj`.
       *
       * All modifications are side-effect free and create copies of the original objects.
       *
       * You can use `.each` to traverse options, lists, etc.
       */
-    inline def modifyAll(inline path: S => A, inline paths: (S => A)*) : PathModify[S, A] = ${ modifyAllImpl('obj, 'path, 'paths) }
+    inline def modifyAll(inline path: S => A, inline paths: (S => A)*): PathModify[S, A] = ${
+      modifyAllImpl('obj, 'path, 'paths)
+    }
 
   case class PathModify[S, A](obj: S, f: (A => A) => S) {
-    
-    /**
-      * Transform the value of the field(s) using the given function.
+
+    /** Transform the value of the field(s) using the given function.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) modified.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) modified.
       */
     def using(mod: A => A): S = f.apply(mod)
 
-    /** An alias for [[using]]. Explicit calls to [[using]] are preferred over this alias, but quicklens provides
-      * this option because code auto-formatters (like scalafmt) will generally not keep [[modify]]/[[using]]
-      * pairs on the same line, leading to code like
+    /** An alias for [[using]]. Explicit calls to [[using]] are preferred over this alias, but quicklens provides this
+      * option because code auto-formatters (like scalafmt) will generally not keep [[modify]]/[[using]] pairs on the
+      * same line, leading to code like
       * {{{
       * x
       *   .modify(_.foo)
@@ -51,38 +52,37 @@ package object quicklens {
       *   .modify(_.foo)(newFoo :: _)
       *   .modify(_.bar)(_ + newBar)
       * }}}
-      * */
+      */
     def apply(mod: A => A): S = using(mod)
 
-    /**
-      * Transform the value of the field(s) using the given function, if the condition is true. Otherwise, returns the
+    /** Transform the value of the field(s) using the given function, if the condition is true. Otherwise, returns the
       * original object unchanged.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) modified, if `condition` is true.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) modified, if `condition` is true.
       */
     def usingIf(condition: Boolean)(mod: A => A): S = if condition then using(mod) else obj
 
-    /**
-      * Set the value of the field(s) to a new value.
+    /** Set the value of the field(s) to a new value.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) set to the new value.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) set to the new value.
       */
     def setTo(v: A): S = f.apply(Function.const(v))
 
-    /**
-        * Set the value of the field(s) to a new value, if it is defined. Otherwise, returns the original object
-        * unchanged.
-        *
-        * @return A copy of the root object with the (deeply nested) field(s) set to the new value, if it is defined.
-        */
-    def setToIfDefined(v: Option[A]): S = v.fold(obj)(setTo)
-
-    /**
-      * Set the value of the field(s) to a new value, if the condition is true. Otherwise, returns the original object
+    /** Set the value of the field(s) to a new value, if it is defined. Otherwise, returns the original object
       * unchanged.
       *
-      * @return A copy of the root object with the (deeply nested) field(s) set to the new value, if `condition` is
-      *         true.
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) set to the new value, if it is defined.
+      */
+    def setToIfDefined(v: Option[A]): S = v.fold(obj)(setTo)
+
+    /** Set the value of the field(s) to a new value, if the condition is true. Otherwise, returns the original object
+      * unchanged.
+      *
+      * @return
+      *   A copy of the root object with the (deeply nested) field(s) set to the new value, if `condition` is true.
       */
     def setToIf(condition: Boolean)(v: A): S = if condition then setTo(v) else obj
   }
@@ -95,10 +95,13 @@ package object quicklens {
   }
 
   case class MultiLensHelper[T] private[quicklens] () {
-    inline def apply[U](inline path1: T => U, inline paths: (T => U)*): PathLazyModify[T, U] = ${ modifyAllLensApplyImpl('path1, 'paths) }
+    inline def apply[U](inline path1: T => U, inline paths: (T => U)*): PathLazyModify[T, U] = ${
+      modifyAllLensApplyImpl('path1, 'paths)
+    }
   }
 
   case class PathLazyModify[T, U](doModify: (T, U => U) => T) { self =>
+
     /** see [[PathModify.using]] */
     def using(mod: U => U): T => T = obj => doModify(obj, mod)
 
@@ -142,12 +145,12 @@ package object quicklens {
       def map[A, B](fa: Option[A], f: A => B): Option[B] = fa.map(f)
     }
 
-    given [K, M <: ([V] =>> Map[K, V])] : QuicklensFunctor[M] with {
+    given [K, M <: ([V] =>> Map[K, V])]: QuicklensFunctor[M] with {
       def map[A, B](fa: M[A], f: A => B): M[B] = {
         val mapped = fa.view.mapValues(f)
         (fa match {
           case sfa: SortedMap[K, A] => sfa.sortedMapFactory.from(mapped)(using sfa.ordering)
-          case _ => mapped.to(fa.mapFactory)
+          case _                    => mapped.to(fa.mapFactory)
         }).asInstanceOf[M[B]]
       }
     }
@@ -168,7 +171,7 @@ package object quicklens {
       def index[A](fa: List[A], f: A => A, idx: Int): List[A] =
         if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
     }
-    given [K, M <: ([V] =>> Map[K, V])] : QuicklensIndexedFunctor[M, K] with {
+    given [K, M <: ([V] =>> Map[K, V])]: QuicklensIndexedFunctor[M, K] with {
       def at[A](fa: M[A], f: A => A, idx: K): M[A] =
         fa.updated(idx, f(fa(idx))).asInstanceOf[M[A]]
       def atOrElse[A](fa: M[A], f: A => A, idx: K, default: => A): M[A] =
@@ -186,7 +189,7 @@ package object quicklens {
     given [L, R]: QuicklensEitherFunctor[Either, L, R] with
       override def eachLeft[A](e: Either[A, R], f: A => A) = e.left.map(f)
       override def eachRight[A](e: Either[L, A], f: A => A) = e.map(f)
-  
+
   // Currently only used for [[Option]], but could be used for [[Right]]-biased [[Either]]s.
   trait QuicklensSingleAtFunctor[F[_]]:
     def at[A](fa: F[A], f: A => A): F[A]
@@ -203,26 +206,26 @@ package object quicklens {
     inline def when[B <: A](a: A, f: B => B): A
 
   object QuicklensWhen:
-    given [A] : QuicklensWhen[A] with
+    given [A]: QuicklensWhen[A] with
       override inline def when[B <: A](a: A, f: B => B): A =
         a match
           case b: B => f(b)
-          case _ => a
+          case _    => a
 
   extension [F[_]: QuicklensFunctor, A](fa: F[A])
     @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
     def each: A = ???
-    
+
     @compileTimeOnly(canOnlyBeUsedInsideModify("eachWhere"))
     def eachWhere(cond: A => Boolean): A = ???
 
   extension [F[_]: ([G[_]] =>> QuicklensIndexedFunctor[G, I]), I, A](fa: F[A])
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: I): A = ???
-    
+
     @compileTimeOnly(canOnlyBeUsedInsideModify("atOrElse"))
     def atOrElse(idx: I, default: => A): A = ???
-    
+
     @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
     def index(idx: I): A = ???
 
