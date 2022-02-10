@@ -78,4 +78,15 @@ object TestData {
   val ms1 = collection.immutable.SortedMap("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3")))
   val mh1 = collection.immutable.HashMap("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3")))
   val ml1 = collection.immutable.ListMap("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3")))
+
+  case class Type(name: String)
+  sealed abstract class Variance {
+    val typ: Type
+  }
+  case class Covariance(typ: Type) extends Variance
+  case class Contravariance(typ: Type) extends Variance
+  case class Invariance(typ: Type) extends Variance
+
+  val invInt: Variance = Invariance(Type("Int"))
+  val invLong: Variance = Invariance(Type("Long"))
 }
