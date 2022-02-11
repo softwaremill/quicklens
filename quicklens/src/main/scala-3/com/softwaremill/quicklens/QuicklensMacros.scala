@@ -118,11 +118,10 @@ object QuicklensMacros {
           case AppliedType(_, typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
           case _                          => Apply(Select(obj, copy), args)
         }
-      else if (objSymbol.flags.is(Flags.Sealed) && objSymbol.flags.is(Flags.Trait)) || objSymbol.flags.is(
-          Flags.Enum
-        )
+      else if objSymbol.flags.is(Flags.Enum) ||
+        (objSymbol.flags.is(Flags.Sealed) && (objSymbol.flags.is(Flags.Trait) || objSymbol.flags.is(Flags.Abstract)))
       then
-        // if the source is a sealed trait / enum, generating a if-then-else with a .copy for each child (implementing case class)
+        // if the source is a sealed trait / sealed abstract class / enum, generating a if-then-else with a .copy for each child (implementing case class)
         val cases = obj.tpe.typeSymbol.children.map { child =>
           val subtype = TypeIdent(child)
           val bind = Symbol.newBind(owner, "c", Flags.EmptyFlags, subtype.tpe)
