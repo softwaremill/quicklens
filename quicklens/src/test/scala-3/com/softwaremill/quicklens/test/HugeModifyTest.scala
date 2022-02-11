@@ -6,7 +6,7 @@ import org.scalatest.matchers.should.Matchers
 import com.softwaremill.quicklens._
 
 class HugeModifyTest extends AnyFlatSpec with Matchers {
-  import Inkuire._
+  import HugeModifyTestData._
 
   it should "expand a huge function" in {
     val c5 = C5(1)
@@ -21,16 +21,17 @@ class HugeModifyTest extends AnyFlatSpec with Matchers {
     val c2e = C2(c3e, c3, c3, c3)
     val c1e = C1(c2e, c2e, c2e, c2)
 
-    val res = c1.modifyAll(
-      _.a.a.a.a.a,
-      _.b.a.a.a.a,
-      _.c.a.a.a.a
-    ).using(_ + 1)
+    val res = c1
+      .modifyAll(
+        _.a.a.a.a.a,
+        _.b.a.a.a.a,
+        _.c.a.a.a.a
+      ).using(_ + 1)
     res should be(c1e)
   }
 }
 
-object Inkuire {
+object HugeModifyTestData {
   case class C1(
     a: C2,
     b: C2,
