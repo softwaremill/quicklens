@@ -51,7 +51,7 @@ object QuicklensMacros {
     toPathModify(obj, to(modF))
   }
 
-  def actualModifyImpl[S: Type, A: Type](obj: Expr[S], focus: Expr[S => A])(using Quotes): Expr[PathModify[S, A]] =
+  def toPathModifyFromFocus[S: Type, A: Type](obj: Expr[S], focus: Expr[S => A])(using Quotes): Expr[PathModify[S, A]] =
     toPathModify(obj, modifyImpl(obj, focus))
 
   private def modifyImpl[S: Type, A: Type](obj: Expr[S], focus: Expr[S => A])(using Quotes): Expr[(A => A) => S] = {

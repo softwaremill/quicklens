@@ -1,9 +1,7 @@
-package com.softwaremill.quicklens.test
+package com.softwaremill.quicklens
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
-import com.softwaremill.quicklens._
 
 class HugeModifyTest extends AnyFlatSpec with Matchers {
   import HugeModifyTestData._
