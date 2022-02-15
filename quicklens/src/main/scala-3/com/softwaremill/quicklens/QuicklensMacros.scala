@@ -15,39 +15,46 @@ object QuicklensMacros {
 
   def from[T: Type, R: Type](f: Expr[T => R])(using Quotes): Expr[T] => Expr[R] = (x: Expr[T]) => '{ $f($x) }
 
-  def modifyLensApplyImpl[T, U](path: Expr[T => U])(using Quotes, Type[T], Type[U]): Expr[PathLazyModify[T, U]] =
-    '{ PathLazyModify((t, mod) => ${ modifyImpl('t, path) }.using(mod)) }
+  def modifyLensApplyImpl[T, U](path: Expr[T => U])(using Quotes, Type[T], Type[U]): Expr[PathLazyModify[T, U]] = '{
+    PathLazyModify { (t, mod) =>
+      ${
+        toPathModify('t, modifyImpl('t, path))
+      }.using(mod)
+    }
+  }
 
-  def modifyAllLensApplyImpl[T, U](path1: Expr[T => U], paths: Expr[Seq[T => U]])(using
-      Quotes,
-      Type[T],
-      Type[U]
-  ): Expr[PathLazyModify[T, U]] =
+  def modifyAllLensApplyImpl[T: Type, U: Type](
+      path1: Expr[T => U],
+      paths: Expr[Seq[T => U]]
+  )(using Quotes): Expr[PathLazyModify[T, U]] =
     '{ PathLazyModify((t, mod) => ${ modifyAllImpl('t, path1, paths) }.using(mod)) }
 
-  def modifyAllImpl[S, A](obj: Expr[S], focus: Expr[S => A], focusesExpr: Expr[Seq[S => A]])(using
-      Quotes,
-      Type[S],
-      Type[A]
-  ): Expr[PathModify[S, A]] = {
+  def modifyAllImpl[S: Type, A: Type](
+      obj: Expr[S],
+      focus: Expr[S => A],
+      focusesExpr: Expr[Seq[S => A]]
+  )(using Quotes): Expr[PathModify[S, A]] = {
     import quotes.reflect.*
 
     val focuses = focusesExpr match {
       case Varargs(args) => args
     }
 
-    val modF1 = fromPathModify(modifyImpl(obj, focus))
-    val modF = to[(A => A), S] { (mod: Expr[A => A]) =>
+    val modF1 = modifyImpl(obj, focus)
+    val modF = { (mod: Expr[A => A]) =>
       focuses.foldLeft(from[(A => A), S](modF1).apply(mod)) { case (objAcc, focus) =>
-        val modCur = fromPathModify(modifyImpl(objAcc, focus))
+        val modCur = modifyImpl(objAcc, focus)
         from[(A => A), S](modCur).apply(mod)
       }
     }
 
-    toPathModify(obj, modF)
+    toPathModify(obj, to(modF))
   }
 
-  def modifyImpl[S, A](obj: Expr[S], focus: Expr[S => A])(using Quotes, Type[S], Type[A]): Expr[PathModify[S, A]] = {
+  def toPathModifyFromFocus[S: Type, A: Type](obj: Expr[S], focus: Expr[S => A])(using Quotes): Expr[PathModify[S, A]] =
+    toPathModify(obj, modifyImpl(obj, focus))
+
+  private def modifyImpl[S: Type, A: Type](obj: Expr[S], focus: Expr[S => A])(using Quotes): Expr[(A => A) => S] = {
     import quotes.reflect.*
 
     def unsupportedShapeInfo(tree: Tree) =
@@ -197,6 +204,6 @@ object QuicklensMacros {
 
     val res: (Expr[A => A] => Expr[S]) = (mod: Expr[A => A]) =>
       mapToCopy(Symbol.spliceOwner, mod, obj.asTerm, path).asExpr.asInstanceOf[Expr[S]]
-    toPathModify(obj, to(res))
+    to(res)
   }
 }
