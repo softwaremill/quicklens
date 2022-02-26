@@ -61,38 +61,29 @@ object QuicklensMacros {
       case Empty
       case Node(children: Seq[(PathSymbol, Seq[PathTree])])
 
-    object PathTree:
-      def empty: PathTree = Empty
-
-    extension (symbols: Seq[PathSymbol])
-      def toPathTree: PathTree = symbols match
-        case Nil => PathTree.Empty
-        case (symbol :: tail) => PathTree.Node(Seq(symbol -> Seq(tail.toPathTree)))
-
-    extension (t1: PathTree)
-      def <>(symbols: Seq[PathSymbol]): PathTree = (t1, symbols) match
+      def <>(symbols: Seq[PathSymbol]): PathTree = (this, symbols) match
         case (PathTree.Empty, _) =>
           symbols.toPathTree
         case (PathTree.Node(children), (symbol :: Nil)) =>
           PathTree.Node {
-            if children.find(_._1 == symbol).isEmpty then
+            if children.find(_._1 equiv symbol).isEmpty then
               children :+ (symbol -> Seq(PathTree.Empty))
             else
               children.map {
-                case (sym, trees) if sym == symbol =>
+                case (sym, trees) if sym equiv symbol =>
                   sym -> (trees :+ PathTree.Empty)
                 case c => c
               }
           }
         case (PathTree.Node(children), Nil) =>
-          t1
+          this
         case (PathTree.Node(children), (symbol :: tail)) =>
           PathTree.Node {
-            if children.find(_._1 == symbol).isEmpty then
+            if children.find(_._1 equiv symbol).isEmpty then
               children :+ (symbol -> Seq(tail.toPathTree))
             else
               children.map {
-                case (sym, trees) if sym == symbol =>
+                case (sym, trees) if sym equiv symbol =>
                   sym -> { trees.init ++ { trees.last match
                     case PathTree.Empty => Seq(PathTree.Empty, tail.toPathTree)
                     case node => Seq(node <> tail)
@@ -100,10 +91,27 @@ object QuicklensMacros {
                 case c => c
               }
           }
+    end PathTree
+
+    object PathTree:
+      def empty: PathTree = Empty
+
+    extension (symbols: Seq[PathSymbol])
+      def toPathTree: PathTree = symbols match
+        case Nil => PathTree.Empty
+        case (symbol :: tail) => PathTree.Node(Seq(symbol -> Seq(tail.toPathTree)))
+      
 
     enum PathSymbol:
       case Field(name: String)
-      case FunctionDelegate(name: String, givn: Term, typeTree: TypeTree, args: List[Term]) //TODO probably have to override equals (and hashCode)
+      case FunctionDelegate(name: String, givn: Term, typeTree: TypeTree, args: List[Term])
+
+      def equiv(other: Any): Boolean = (this, other) match
+        case (Field(name1), Field(name2)) => name1 == name2
+        case (FunctionDelegate(name1, _, typeTree1, _), FunctionDelegate(name2, _, typeTree2, _)) =>
+          name1 == name2 && typeTree1 == typeTree2
+        case _ => false
+    end PathSymbol
 
     def toPath(tree: Tree, focus: Expr[S => A]): Seq[PathSymbol] = {
       tree match {
