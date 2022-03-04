@@ -109,7 +109,7 @@ object QuicklensMacros {
       def equiv(other: Any): Boolean = (this, other) match
         case (Field(name1), Field(name2)) => name1 == name2
         case (FunctionDelegate(name1, _, typeTree1, _), FunctionDelegate(name2, _, typeTree2, _)) =>
-          name1 == name2 && typeTree1 == typeTree2
+          name1 == name2
         case _ => false
     end PathSymbol
 
