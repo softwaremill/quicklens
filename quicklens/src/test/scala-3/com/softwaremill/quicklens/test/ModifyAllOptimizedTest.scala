@@ -61,6 +61,59 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
     Cons.copyCount should be(4)
   }
 
+  it should "optimize number of copy calls 4" in {
+    val lst: Cons = Cons.fromList(List(1, 2, 3, 4, 5, 6)).get
+
+    lst
+      .modifyAll(
+        _.tail,
+        _.tail.each.tail,
+        _.tail,
+        _.tail.each.tail
+      ).using {
+        case None => None
+        case Some(Cons(head, tail)) => Some(Cons(head + 1, tail))
+      }
+
+    Cons.copyCount should be(3)
+  }
+
+  it should "optimize number of copy calls 5" in {
+    val lst: Cons = Cons.fromList(List(1, 2, 3, 4, 5, 6)).get
+
+    lst
+      .modifyAll(
+        _.tail,
+        _.tail.each.tail,
+        _.tail.each.tail,
+        _.tail,
+      ).using {
+        case None => None
+        case Some(Cons(head, tail)) => Some(Cons(head + 1, tail))
+      }
+
+    Cons.copyCount should be(2)
+  }
+
+  it should "optimize number of copy calls 6" in {
+    val lst: Cons = Cons.fromList(List(1, 2, 3, 4, 5, 6)).get
+
+    lst
+      .modifyAll(
+        _.tail,
+        _.tail.each.tail.each.tail,
+        _.tail.each.tail,
+        _.tail.each.tail.each.tail.each.tail,
+        _.tail.each.tail,
+        _.tail,
+      ).using {
+        case None => None
+        case Some(Cons(head, tail)) => Some(Cons(head + 1, tail))
+      }
+
+    Cons.copyCount should be(5)
+  }
+
   it should "optimize number of each function delegates 1" in {
     val lst: ConsOpt = ConsOpt.fromList(List(1, 2, 3)).get
 
