@@ -172,7 +172,7 @@ object QuicklensMacros {
         case q"$parent.$method(..$xargs)" if methodSupported(method) =>
           collectPathElements(parent, TermPathElement(method, DirectPathAccess, xargs: _*) :: acc)
         case q"$tpname[..$_]($t)($f)" if typeSupported(tpname) =>
-          val newAcc = acc match {
+          val newAcc = (acc: @unchecked) match {
             // replace the term controlled by quicklens
             case TermPathElement(term, _, xargs @ _*) :: rest => FunctorPathElement(f, term, xargs: _*) :: rest
             case pathEl :: _ =>
@@ -189,7 +189,7 @@ object QuicklensMacros {
     def generateSelects(rootPathEl: c.TermName, reversePathEls: List[PathElement]): c.Tree = {
       @tailrec
       def terms(els: List[PathElement], result: List[c.TermName]): List[c.TermName] =
-        els match {
+        (els: @unchecked) match {
           case Nil                               => result
           case TermPathElement(term, _) :: tail  => terms(tail, term :: result)
           case SubtypePathElement(_) :: _        => result
@@ -230,7 +230,7 @@ object QuicklensMacros {
         reversePathEls: List[PathElement],
         newVal: c.Tree
     ): (c.TermName, c.Tree) =
-      reversePathEls match {
+      (reversePathEls: @unchecked) match {
         case Nil => (rootPathEl, newVal)
         case TermPathElement(pathEl, access) :: tail =>
           val selectCurrVal = generateSelects(rootPathEl, tail)

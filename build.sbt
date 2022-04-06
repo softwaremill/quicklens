@@ -74,11 +74,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     scalaVersions = List(scala211, scala212, scala213, scala3)
   )
   .jsPlatform(
-    scalaVersions = List(scala212, scala213, scala3),
-    Test / test := {
-      // see https://github.com/softwaremill/quicklens/issues/67; TODO: re-enable one day when this works
-      if (scalaVersion.value == scala3) {} else (Test / test).value
-    }
+    scalaVersions = List(scala212, scala213, scala3)
   )
   .nativePlatform(
     scalaVersions = List(scala211, scala212, scala213),
