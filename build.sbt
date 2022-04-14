@@ -4,8 +4,8 @@ import com.softwaremill.UpdateVersionInDocs
 
 val scala211 = "2.11.12"
 val scala212 = "2.12.15"
-val scala213 = "2.13.6"
-val scala3 = "3.0.2"
+val scala213 = "2.13.8"
+val scala3 = "3.1.2"
 
 val scalaIdeaVersion = scala3 // the version for which to import sources into intellij
 
@@ -67,7 +67,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     libraryDependencies ++= compilerLibrary(scalaVersion.value),
     versionSpecificScalaSources,
     libraryDependencies ++= Seq("flatspec", "shouldmatchers").map(m =>
-      "org.scalatest" %%% s"scalatest-$m" % "3.2.10" % Test
+      "org.scalatest" %%% s"scalatest-$m" % "3.2.11" % Test
     )
   )
   .jvmPlatform(
