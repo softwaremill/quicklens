@@ -141,6 +141,10 @@ package object quicklens {
       def map[A, B](fa: Seq[A], f: A => B): Seq[B] = fa.map(f)
     }
 
+    given QuicklensFunctor[IndexedSeq] with {
+      def map[A, B](fa: IndexedSeq[A], f: A => B): IndexedSeq[B] = fa.map(f)
+    }
+
     given QuicklensFunctor[Option] with {
       def map[A, B](fa: Option[A], f: A => B): Option[B] = fa.map(f)
     }
@@ -169,6 +173,22 @@ package object quicklens {
       def atOrElse[A](fa: List[A], f: A => A, idx: Int, default: => A): List[A] =
         fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
       def index[A](fa: List[A], f: A => A, idx: Int): List[A] =
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
+    }
+    given QuicklensIndexedFunctor[Seq, Int] with {
+      def at[A](fa: Seq[A], f: A => A, idx: Int): Seq[A] =
+        fa.updated(idx, f(fa(idx)))
+      def atOrElse[A](fa: Seq[A], f: A => A, idx: Int, default: => A): Seq[A] =
+        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
+      def index[A](fa: Seq[A], f: A => A, idx: Int): Seq[A] =
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
+    }
+    given QuicklensIndexedFunctor[IndexedSeq, Int] with {
+      def at[A](fa: IndexedSeq[A], f: A => A, idx: Int): IndexedSeq[A] =
+        fa.updated(idx, f(fa(idx)))
+      def atOrElse[A](fa: IndexedSeq[A], f: A => A, idx: Int, default: => A): IndexedSeq[A] =
+        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
+      def index[A](fa: IndexedSeq[A], f: A => A, idx: Int): IndexedSeq[A] =
         if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
     }
     given [K, M <: ([V] =>> Map[K, V])]: QuicklensIndexedFunctor[M, K] with {
