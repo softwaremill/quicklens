@@ -133,12 +133,8 @@ package object quicklens {
   }
 
   object QuicklensFunctor {
-    given QuicklensFunctor[List] with {
-      def map[A, B](fa: List[A], f: A => B): List[B] = fa.map(f)
-    }
-
-    given QuicklensFunctor[Seq] with {
-      def map[A, B](fa: Seq[A], f: A => B): Seq[B] = fa.map(f)
+    given [S <: ([V] =>> Seq[V])]: QuicklensFunctor[S] with {
+      def map[A, B](fa: S[A], f: A => B): S[B] = fa.map(f).asInstanceOf[S[B]]
     }
 
     given QuicklensFunctor[Option] with {
@@ -163,14 +159,15 @@ package object quicklens {
   }
 
   object QuicklensIndexedFunctor {
-    given QuicklensIndexedFunctor[List, Int] with {
-      def at[A](fa: List[A], f: A => A, idx: Int): List[A] =
-        fa.updated(idx, f(fa(idx)))
-      def atOrElse[A](fa: List[A], f: A => A, idx: Int, default: => A): List[A] =
-        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
-      def index[A](fa: List[A], f: A => A, idx: Int): List[A] =
-        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
+    given [S <: ([V] =>> Seq[V])]: QuicklensIndexedFunctor[S, Int] with {
+      def at[A](fa: S[A], f: A => A, idx: Int): S[A] =
+        fa.updated(idx, f(fa(idx))).asInstanceOf[S[A]]
+      def atOrElse[A](fa: S[A], f: A => A, idx: Int, default: => A): S[A] =
+        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default)))).asInstanceOf[S[A]]
+      def index[A](fa: S[A], f: A => A, idx: Int): S[A] =
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))).asInstanceOf[S[A]] else fa
     }
+
     given [K, M <: ([V] =>> Map[K, V])]: QuicklensIndexedFunctor[M, K] with {
       def at[A](fa: M[A], f: A => A, idx: K): M[A] =
         fa.updated(idx, f(fa(idx))).asInstanceOf[M[A]]
