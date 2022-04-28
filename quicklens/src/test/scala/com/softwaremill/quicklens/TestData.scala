@@ -70,6 +70,9 @@ object TestData {
   val is1 = l1.toIndexedSeq
   val iss1 = ss1.map(_.toIndexedSeq).toIndexedSeq
 
+  val ar1: Array[A3] = s1.toArray
+  val arar1: Array[Array[A5]] = ss1.map(_.toArray).toArray
+
   case class M2(m3: Map[String, A4])
 
   val m1 = Map("K1" -> A4(A5("d1")), "K2" -> A4(A5("d2")), "K3" -> A4(A5("d3")))
