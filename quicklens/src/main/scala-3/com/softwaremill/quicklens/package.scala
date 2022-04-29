@@ -3,6 +3,7 @@ package com.softwaremill
 import scala.collection.{Factory, SortedMap}
 import scala.annotation.compileTimeOnly
 import com.softwaremill.quicklens.QuicklensMacros._
+import scala.reflect.ClassTag
 
 package object quicklens {
 
@@ -127,27 +128,33 @@ package object quicklens {
   }
 
   trait QuicklensFunctor[F[_]] {
-    def map[A, B](fa: F[A], f: A => B): F[B]
+    def map[A](fa: F[A], f: A => A): F[A]
     def each[A](fa: F[A], f: A => A): F[A] = map(fa, f)
     def eachWhere[A](fa: F[A], f: A => A, cond: A => Boolean): F[A] = map(fa, x => if cond(x) then f(x) else x)
   }
 
   object QuicklensFunctor {
     given [S <: ([V] =>> Seq[V])]: QuicklensFunctor[S] with {
-      def map[A, B](fa: S[A], f: A => B): S[B] = fa.map(f).asInstanceOf[S[B]]
+      def map[A](fa: S[A], f: A => A): S[A] = fa.map(f).asInstanceOf[S[A]]
     }
 
     given QuicklensFunctor[Option] with {
-      def map[A, B](fa: Option[A], f: A => B): Option[B] = fa.map(f)
+      def map[A](fa: Option[A], f: A => A): Option[A] = fa.map(f)
+    }
+
+    given QuicklensFunctor[Array] with {
+      def map[A](fa: Array[A], f: A => A): Array[A] =
+        implicit val aClassTag: ClassTag[A] = fa.elemTag.asInstanceOf[ClassTag[A]]
+        fa.map(f)
     }
 
     given [K, M <: ([V] =>> Map[K, V])]: QuicklensFunctor[M] with {
-      def map[A, B](fa: M[A], f: A => B): M[B] = {
+      def map[A](fa: M[A], f: A => A): M[A] = {
         val mapped = fa.view.mapValues(f)
         (fa match {
           case sfa: SortedMap[K, A] => sfa.sortedMapFactory.from(mapped)(using sfa.ordering)
           case _                    => mapped.to(fa.mapFactory)
-        }).asInstanceOf[M[B]]
+        }).asInstanceOf[M[A]]
       }
     }
   }
@@ -166,6 +173,18 @@ package object quicklens {
         fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default)))).asInstanceOf[S[A]]
       def index[A](fa: S[A], f: A => A, idx: Int): S[A] =
         if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))).asInstanceOf[S[A]] else fa
+    }
+
+    given QuicklensIndexedFunctor[Array, Int] with {
+      def at[A](fa: Array[A], f: A => A, idx: Int): Array[A] =
+        implicit val aClassTag: ClassTag[A] = fa.elemTag.asInstanceOf[ClassTag[A]]
+        fa.updated(idx, f(fa(idx)))
+      def atOrElse[A](fa: Array[A], f: A => A, idx: Int, default: => A): Array[A] =
+        implicit val aClassTag: ClassTag[A] = fa.elemTag.asInstanceOf[ClassTag[A]]
+        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
+      def index[A](fa: Array[A], f: A => A, idx: Int): Array[A] =
+        implicit val aClassTag: ClassTag[A] = fa.elemTag.asInstanceOf[ClassTag[A]]
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa
     }
 
     given [K, M <: ([V] =>> Map[K, V])]: QuicklensIndexedFunctor[M, K] with {

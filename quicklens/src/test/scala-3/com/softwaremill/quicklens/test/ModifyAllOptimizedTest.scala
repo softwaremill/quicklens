@@ -3,6 +3,7 @@ package com.softwaremill.quicklens
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
+import scala.reflect.ClassTag
 
 class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
   import ModifyAllOptimizedTest._
@@ -186,7 +187,7 @@ object ModifyAllOptimizedTest {
   }
 
   given QuicklensFunctor[Opt] with {
-    def map[A, B](fa: Opt[A], f: A => B): Opt[B] =
+    def map[A](fa: Opt[A], f: A => A): Opt[A] =
       Opt.eachCount = Opt.eachCount + 1
       fa match {
         case Nada => Nada
