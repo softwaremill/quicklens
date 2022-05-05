@@ -67,7 +67,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     libraryDependencies ++= compilerLibrary(scalaVersion.value),
     versionSpecificScalaSources,
     libraryDependencies ++= Seq("flatspec", "shouldmatchers").map(m =>
-      "org.scalatest" %%% s"scalatest-$m" % "3.2.11" % Test
+      "org.scalatest" %%% s"scalatest-$m" % "3.2.12" % Test
     )
   )
   .jvmPlatform(
@@ -77,7 +77,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     scalaVersions = List(scala212, scala213, scala3)
   )
   .nativePlatform(
-    scalaVersions = List(scala211, scala212, scala213),
+    scalaVersions = List(scala211, scala212, scala213, scala3),
     settings = Seq(
       nativeLinkStubs := true
     )
