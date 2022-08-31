@@ -54,6 +54,9 @@ object QuicklensMacros {
     def unsupportedShapeInfo(tree: Tree) =
       s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: ${tree.show}"
 
+    def noSuchMember(term: Term, name: String) =
+      s"${term.tpe} has no member named $name"
+
     def methodSupported(method: String) =
       Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index", "when").contains(method)
 
@@ -84,10 +87,10 @@ object QuicklensMacros {
             else
               children.map {
                 case (sym, trees) if sym equiv symbol =>
-                  sym -> { trees.init ++ { trees.last match
+                  sym -> (trees.init ++ { trees.last match
                     case PathTree.Empty => Seq(PathTree.Empty, tail.toPathTree)
                     case node => Seq(node <> tail)
-                  }}
+                  })
                 case c => c
               }
           }
@@ -100,7 +103,6 @@ object QuicklensMacros {
       def toPathTree: PathTree = symbols match
         case Nil => PathTree.Empty
         case (symbol :: tail) => PathTree.Node(Seq(symbol -> Seq(tail.toPathTree)))
-      
 
     enum PathSymbol:
       case Field(name: String)
@@ -139,13 +141,17 @@ object QuicklensMacros {
     }
 
     def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
-      term.tpe.typeSymbol.memberMethod(name).head
+      term.tpe.typeSymbol
+        .memberMethod(name)
+        .headOption
+        .getOrElse(report.errorAndAbort(noSuchMember(term, name)))
     }
 
     def termAccessorMethodByNameUnsafe(term: Term, name: String): (Symbol, Int) = {
-      val caseFields = term.tpe.typeSymbol.caseFields
-      val idx = caseFields.map(_.name).indexOf(name)
-      (caseFields.find(_.name == name).get, idx + 1)
+      val caseParamNames = term.tpe.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).map(_.name)
+      val idx = caseParamNames.indexOf(name)
+      term.tpe.typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term, name)))
+        -> (idx + 1)
     }
 
     def caseClassCopy(
@@ -166,7 +172,7 @@ object QuicklensMacros {
           idx -> namedArg
         }.toMap
 
-        val fieldsIdxs = 1.to(obj.tpe.typeSymbol.caseFields.length)
+        val fieldsIdxs = 1.to(obj.tpe.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).length)
         val args = fieldsIdxs.map { i =>
           argsMap.getOrElse(
             i,
