@@ -141,16 +141,16 @@ object QuicklensMacros {
     }
 
     def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
-      term.tpe.typeSymbol
+      term.tpe.widen.dealias.typeSymbol
         .memberMethod(name)
         .headOption
         .getOrElse(report.errorAndAbort(noSuchMember(term, name)))
     }
 
     def termAccessorMethodByNameUnsafe(term: Term, name: String): (Symbol, Int) = {
-      val caseParamNames = term.tpe.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).map(_.name)
+      val caseParamNames = term.tpe.widen.dealias.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).map(_.name)
       val idx = caseParamNames.indexOf(name)
-      term.tpe.typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term, name)))
+      term.tpe.widen.dealias.typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term, name)))
         -> (idx + 1)
     }
 
@@ -160,7 +160,7 @@ object QuicklensMacros {
         obj: Term,
         fields: Seq[(PathSymbol.Field, Seq[PathTree])]
     ): Term = {
-      val objSymbol = obj.tpe.typeSymbol
+      val objSymbol = obj.tpe.widen.dealias.typeSymbol
       if objSymbol.flags.is(Flags.Case) then {
         val copy = termMethodByNameUnsafe(obj, "copy")
         val argsMap: Map[Int, Term] = fields.map { (field, trees) =>
@@ -172,7 +172,7 @@ object QuicklensMacros {
           idx -> namedArg
         }.toMap
 
-        val fieldsIdxs = 1.to(obj.tpe.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).length)
+        val fieldsIdxs = 1.to(objSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).length)
         val args = fieldsIdxs.map { i =>
           argsMap.getOrElse(
             i,
@@ -189,7 +189,7 @@ object QuicklensMacros {
         (objSymbol.flags.is(Flags.Sealed) && (objSymbol.flags.is(Flags.Trait) || objSymbol.flags.is(Flags.Abstract)))
       then {
         // if the source is a sealed trait / sealed abstract class / enum, generating a if-then-else with a .copy for each child (implementing case class)
-        val cases = obj.tpe.typeSymbol.children.map { child =>
+        val cases = obj.tpe.widen.dealias.typeSymbol.children.map { child =>
           val subtype = TypeIdent(child)
           val bind = Symbol.newBind(owner, "c", Flags.EmptyFlags, subtype.tpe)
           CaseDef(Bind(bind, Typed(Ref(bind), subtype)), None, caseClassCopy(owner, mod, Ref(bind), fields))
@@ -201,7 +201,7 @@ object QuicklensMacros {
         ...
         else throw new IllegalStateException()
          */
-        val ifThens = obj.tpe.typeSymbol.children.map { child =>
+        val ifThens = obj.tpe.widen.dealias.typeSymbol.children.map { child =>
           val ifCond = TypeApply(Select.unique(obj, "isInstanceOf"), List(TypeIdent(child)))
 
           val ifThen = ValDef.let(owner, TypeApply(Select.unique(obj, "asInstanceOf"), List(TypeIdent(child)))) {
