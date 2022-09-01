@@ -26,4 +26,11 @@ class ModifyAliasTest extends AnyFlatSpec with Matchers {
 
     modified.x shouldBe 1
   }
+
+  it should "modify a sealed hierarchy declared using type alias" in {
+    val s: E = ListInt(0)
+    val modified = s.modify(_.i).setTo(1)
+
+    modified.i shouldBe 1
+  }
 }
