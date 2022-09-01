@@ -54,8 +54,8 @@ object QuicklensMacros {
     def unsupportedShapeInfo(tree: Tree) =
       s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: ${tree.show}"
 
-    def noSuchMember(term: Term, name: String) =
-      s"${term.tpe.show} has no member named $name"
+    def noSuchMember(tpeStr: String, name: String) =
+      s"$tpeStr has no member named $name"
 
     def methodSupported(method: String) =
       Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index", "when").contains(method)
@@ -148,19 +148,32 @@ object QuicklensMacros {
       }
       def widenAll: TypeRepr =
         tpe.widen.dealias.poorMansLUB
+      def matchingTypeSymbol: Symbol = tpe.widenAll match {
+        case AndType(l, r) =>
+          val lSym = l.matchingTypeSymbol
+          if l.matchingTypeSymbol != Symbol.noSymbol then lSym else r.matchingTypeSymbol
+        case tpe if isProduct(tpe.typeSymbol) || isSum(tpe.typeSymbol) =>
+          tpe.typeSymbol
+        case tpe =>
+          Symbol.noSymbol
+      }
 
-    def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
-      term.tpe.widenAll.typeSymbol
+    def symbolMethodByNameUnsafe(sym: Symbol, name: String): Symbol = {
+      sym
         .memberMethod(name)
         .headOption
-        .getOrElse(report.errorAndAbort(noSuchMember(term, name)))
+        .getOrElse(report.errorAndAbort(noSuchMember(sym.name, name)))
+    }
+
+    def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
+      symbolMethodByNameUnsafe(term.tpe.widenAll.typeSymbol, name)
     }
 
     def termAccessorMethodByNameUnsafe(term: Term, name: String): (Symbol, Int) = {
-      val typeSymbol = term.tpe.widenAll.typeSymbol
+      val typeSymbol = term.tpe.widenAll.matchingTypeSymbol
       val caseParamNames = typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).map(_.name)
       val idx = caseParamNames.indexOf(name)
-      typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term, name)))
+      typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term.tpe.show, name)))
         -> (idx + 1)
     }
 
@@ -179,9 +192,9 @@ object QuicklensMacros {
         obj: Term,
         fields: Seq[(PathSymbol.Field, Seq[PathTree])]
     ): Term = {
-      val objSymbol = obj.tpe.widenAll.typeSymbol
+      val objSymbol = obj.tpe.widenAll.matchingTypeSymbol
       if isProduct(objSymbol) then {
-        val copy = termMethodByNameUnsafe(obj, "copy")
+        val copy = symbolMethodByNameUnsafe(objSymbol, "copy")
         val argsMap: Map[Int, Term] = fields.map { (field, trees) =>
           val (fieldMethod, idx) = termAccessorMethodByNameUnsafe(obj, field.name)
           val resTerm: Term = trees.foldLeft[Term](Select(obj, fieldMethod)) { (term, tree) =>
@@ -195,7 +208,7 @@ object QuicklensMacros {
         val args = fieldsIdxs.map { i =>
           argsMap.getOrElse(
             i,
-            Select(obj, termMethodByNameUnsafe(obj, "copy$default$" + i.toString))
+            Select(obj, symbolMethodByNameUnsafe(objSymbol, "copy$default$" + i.toString))
           )
         }.toList
 
@@ -313,7 +326,7 @@ object QuicklensMacros {
       paths.foldLeft(PathTree.empty) { (tree, path) => tree <> path }
 
     val res: (Expr[A => A] => Expr[S]) = (mod: Expr[A => A]) =>
-      mapToCopy(Symbol.spliceOwner, mod, obj.asTerm, pathTree).asExpr.asInstanceOf[Expr[S]]
+      Typed(mapToCopy(Symbol.spliceOwner, mod, obj.asTerm, pathTree), TypeTree.of[S]).asExpr.asInstanceOf[Expr[S]]
     to(res)
   }
 }
