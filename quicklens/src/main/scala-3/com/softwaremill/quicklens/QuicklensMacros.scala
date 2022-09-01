@@ -141,16 +141,16 @@ object QuicklensMacros {
     }
 
     def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
-      term.tpe.typeSymbol
+      term.tpe.widen.dealias.typeSymbol
         .memberMethod(name)
         .headOption
         .getOrElse(report.errorAndAbort(noSuchMember(term, name)))
     }
 
     def termAccessorMethodByNameUnsafe(term: Term, name: String): (Symbol, Int) = {
-      val caseParamNames = term.tpe.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).map(_.name)
+      val caseParamNames = term.tpe.widen.dealias.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).map(_.name)
       val idx = caseParamNames.indexOf(name)
-      term.tpe.typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term, name)))
+      term.tpe.widen.dealias.typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term, name)))
         -> (idx + 1)
     }
 
@@ -160,7 +160,7 @@ object QuicklensMacros {
         obj: Term,
         fields: Seq[(PathSymbol.Field, Seq[PathTree])]
     ): Term = {
-      val objSymbol = obj.tpe.typeSymbol
+      val objSymbol = obj.tpe.widen.dealias.typeSymbol
       if objSymbol.flags.is(Flags.Case) then {
         val copy = termMethodByNameUnsafe(obj, "copy")
         val argsMap: Map[Int, Term] = fields.map { (field, trees) =>
@@ -172,7 +172,7 @@ object QuicklensMacros {
           idx -> namedArg
         }.toMap
 
-        val fieldsIdxs = 1.to(obj.tpe.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).length)
+        val fieldsIdxs = 1.to(objSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).length)
         val args = fieldsIdxs.map { i =>
           argsMap.getOrElse(
             i,
@@ -180,7 +180,7 @@ object QuicklensMacros {
           )
         }.toList
 
-        obj.tpe.widen match {
+        obj.tpe.widen.dealias match {
           // if the object's type is parametrised, we need to call .copy with the same type parameters
           case AppliedType(_, typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
           case _                          => Apply(Select(obj, copy), args)
