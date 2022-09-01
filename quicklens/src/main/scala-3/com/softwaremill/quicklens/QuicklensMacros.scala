@@ -55,7 +55,7 @@ object QuicklensMacros {
       s"Unsupported path element. Path must have shape: _.field1.field2.each.field3.(...), got: ${tree.show}"
 
     def noSuchMember(term: Term, name: String) =
-      s"${term.tpe} has no member named $name"
+      s"${term.tpe.show} has no member named $name"
 
     def methodSupported(method: String) =
       Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index", "when").contains(method)
@@ -140,18 +140,37 @@ object QuicklensMacros {
       }
     }
 
+    extension (tpe: TypeRepr)
+      def poorMansLUB: TypeRepr = tpe match {
+        case AndType(l, r) if l <:< r => l
+        case AndType(l, r) if r <:< l => r
+        case _ => tpe
+      }
+      def widenAll: TypeRepr =
+        tpe.widen.dealias.poorMansLUB
+
     def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
-      term.tpe.widen.dealias.typeSymbol
+      term.tpe.widenAll.typeSymbol
         .memberMethod(name)
         .headOption
         .getOrElse(report.errorAndAbort(noSuchMember(term, name)))
     }
 
     def termAccessorMethodByNameUnsafe(term: Term, name: String): (Symbol, Int) = {
-      val caseParamNames = term.tpe.widen.dealias.typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).map(_.name)
+      val typeSymbol = term.tpe.widenAll.typeSymbol
+      val caseParamNames = typeSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).map(_.name)
       val idx = caseParamNames.indexOf(name)
-      term.tpe.widen.dealias.typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term, name)))
+      typeSymbol.caseFields.find(_.name == name).getOrElse(report.errorAndAbort(noSuchMember(term, name)))
         -> (idx + 1)
+    }
+
+    def isProduct(sym: Symbol): Boolean = {
+      sym.flags.is(Flags.Case)
+    }
+
+    def isSum(sym: Symbol): Boolean = {
+      sym.flags.is(Flags.Enum) ||
+        (sym.flags.is(Flags.Sealed) && (sym.flags.is(Flags.Trait) || sym.flags.is(Flags.Abstract)))
     }
 
     def caseClassCopy(
@@ -160,8 +179,8 @@ object QuicklensMacros {
         obj: Term,
         fields: Seq[(PathSymbol.Field, Seq[PathTree])]
     ): Term = {
-      val objSymbol = obj.tpe.widen.dealias.typeSymbol
-      if objSymbol.flags.is(Flags.Case) then {
+      val objSymbol = obj.tpe.widenAll.typeSymbol
+      if isProduct(objSymbol) then {
         val copy = termMethodByNameUnsafe(obj, "copy")
         val argsMap: Map[Int, Term] = fields.map { (field, trees) =>
           val (fieldMethod, idx) = termAccessorMethodByNameUnsafe(obj, field.name)
@@ -185,11 +204,9 @@ object QuicklensMacros {
           case AppliedType(_, typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
           case _                          => Apply(Select(obj, copy), args)
         }
-      } else if objSymbol.flags.is(Flags.Enum) ||
-        (objSymbol.flags.is(Flags.Sealed) && (objSymbol.flags.is(Flags.Trait) || objSymbol.flags.is(Flags.Abstract)))
-      then {
+      } else if isSum(objSymbol) then {
         // if the source is a sealed trait / sealed abstract class / enum, generating a if-then-else with a .copy for each child (implementing case class)
-        val cases = obj.tpe.widen.dealias.typeSymbol.children.map { child =>
+        val cases = objSymbol.children.map { child =>
           val subtype = TypeIdent(child)
           val bind = Symbol.newBind(owner, "c", Flags.EmptyFlags, subtype.tpe)
           CaseDef(Bind(bind, Typed(Ref(bind), subtype)), None, caseClassCopy(owner, mod, Ref(bind), fields))
@@ -201,7 +218,7 @@ object QuicklensMacros {
         ...
         else throw new IllegalStateException()
          */
-        val ifThens = obj.tpe.widen.dealias.typeSymbol.children.map { child =>
+        val ifThens = objSymbol.children.map { child =>
           val ifCond = TypeApply(Select.unique(obj, "isInstanceOf"), List(TypeIdent(child)))
 
           val ifThen = ValDef.let(owner, TypeApply(Select.unique(obj, "asInstanceOf"), List(TypeIdent(child)))) {
