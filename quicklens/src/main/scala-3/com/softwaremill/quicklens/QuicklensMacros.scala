@@ -136,7 +136,7 @@ object QuicklensMacros {
         case i: Ident if i.name.startsWith("_") =>
           Seq.empty
         case _ =>
-          report.throwError(unsupportedShapeInfo(focus.asTerm))
+          report.errorAndAbort(unsupportedShapeInfo(focus.asTerm))
       }
     }
 
@@ -160,7 +160,7 @@ object QuicklensMacros {
 
     def symbolMethodByNameUnsafe(sym: Symbol, name: String): Symbol = {
       sym
-        .memberMethod(name)
+        .methodMember(name)
         .headOption
         .getOrElse(report.errorAndAbort(noSuchMember(sym.name, name)))
     }
@@ -218,13 +218,11 @@ object QuicklensMacros {
           case _                          => Apply(Select(obj, copy), args)
         }
       } else if isSum(objSymbol) then {
-        // if the source is a sealed trait / sealed abstract class / enum, generating a if-then-else with a .copy for each child (implementing case class)
-        val cases = objSymbol.children.map { child =>
-          val subtype = TypeIdent(child)
-          val bind = Symbol.newBind(owner, "c", Flags.EmptyFlags, subtype.tpe)
-          CaseDef(Bind(bind, Typed(Ref(bind), subtype)), None, caseClassCopy(owner, mod, Ref(bind), fields))
+        obj.tpe.widenAll match {
+          case AndType(_, _) =>
+            report.errorAndAbort(s"Implementation limitation: Cannot modify sealed hierarchies mixed with & types. Try providing a more specific type.")
+          case _ =>
         }
-
         /*
         if (obj.isInstanceOf[Child1]) caseClassCopy(obj.asInstanceOf[Child1]) else
         if (obj.isInstanceOf[Child2]) caseClassCopy(obj.asInstanceOf[Child2]) else
@@ -247,7 +245,7 @@ object QuicklensMacros {
           If(ifCond, ifThen, ifElse)
         }
       } else
-        report.throwError(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol")
+        report.errorAndAbort(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol")
     }
 
     def applyFunctionDelegate(
@@ -319,7 +317,7 @@ object QuicklensMacros {
       case Block(List(DefDef(_, _, _, Some(p))), _) =>
         toPath(p, focus)
       case _ =>
-        report.throwError(unsupportedShapeInfo(tree))
+        report.errorAndAbort(unsupportedShapeInfo(tree))
     }
 
     val pathTree: PathTree =
