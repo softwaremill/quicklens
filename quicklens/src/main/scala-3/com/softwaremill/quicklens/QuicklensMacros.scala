@@ -180,7 +180,7 @@ object QuicklensMacros {
           )
         }.toList
 
-        obj.tpe.widen.dealias match {
+        obj.tpe.widen match {
           // if the object's type is parametrised, we need to call .copy with the same type parameters
           case AppliedType(_, typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
           case _                          => Apply(Select(obj, copy), args)
@@ -189,7 +189,7 @@ object QuicklensMacros {
         (objSymbol.flags.is(Flags.Sealed) && (objSymbol.flags.is(Flags.Trait) || objSymbol.flags.is(Flags.Abstract)))
       then {
         // if the source is a sealed trait / sealed abstract class / enum, generating a if-then-else with a .copy for each child (implementing case class)
-        val cases = obj.tpe.typeSymbol.children.map { child =>
+        val cases = obj.tpe.widen.dealias.typeSymbol.children.map { child =>
           val subtype = TypeIdent(child)
           val bind = Symbol.newBind(owner, "c", Flags.EmptyFlags, subtype.tpe)
           CaseDef(Bind(bind, Typed(Ref(bind), subtype)), None, caseClassCopy(owner, mod, Ref(bind), fields))
@@ -201,7 +201,7 @@ object QuicklensMacros {
         ...
         else throw new IllegalStateException()
          */
-        val ifThens = obj.tpe.typeSymbol.children.map { child =>
+        val ifThens = obj.tpe.widen.dealias.typeSymbol.children.map { child =>
           val ifCond = TypeApply(Select.unique(obj, "isInstanceOf"), List(TypeIdent(child)))
 
           val ifThen = ValDef.let(owner, TypeApply(Select.unique(obj, "asInstanceOf"), List(TypeIdent(child)))) {
