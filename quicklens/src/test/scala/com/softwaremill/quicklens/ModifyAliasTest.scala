@@ -10,6 +10,13 @@ object ModifyAliasTest {
   case class State(x: Int)
 
   type S = State
+
+  sealed trait Expr {
+    def i: Int
+  }
+  case class ListInt(i: Int) extends Expr
+
+  type E = Expr
 }
 
 class ModifyAliasTest extends AnyFlatSpec with Matchers {
