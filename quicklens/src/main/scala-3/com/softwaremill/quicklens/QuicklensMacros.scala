@@ -204,17 +204,23 @@ object QuicklensMacros {
           idx -> namedArg
         }.toMap
 
+        val typeParams = obj.tpe.widenAll match {
+          case AppliedType(_, typeParams) => Some(typeParams)
+          case _                          => None
+        }
+
         val fieldsIdxs = 1.to(objSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).length)
         val args = fieldsIdxs.map { i =>
+          val defaultMethod = obj.select(symbolMethodByNameUnsafe(objSymbol, "copy$default$" + i.toString))
           argsMap.getOrElse(
             i,
-            Select(obj, symbolMethodByNameUnsafe(objSymbol, "copy$default$" + i.toString))
+            typeParams.fold(defaultMethod)(defaultMethod.appliedToTypes)
           )
         }.toList
 
-        obj.tpe.widen match {
+        typeParams match {
           // if the object's type is parametrised, we need to call .copy with the same type parameters
-          case AppliedType(_, typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
+          case Some(typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
           case _                          => Apply(Select(obj, copy), args)
         }
       } else if isSum(objSymbol) then {
