@@ -48,7 +48,9 @@ object QuicklensMacros {
   def toPathModifyFromFocus[S: Type, A: Type](obj: Expr[S], focus: Expr[S => A])(using Quotes): Expr[PathModify[S, A]] =
     toPathModify(obj, modifyImpl(obj, Seq(focus)))
 
-  private def modifyImpl[S: Type, A: Type](obj: Expr[S], focuses: Seq[Expr[S => A]])(using Quotes): Expr[(A => A) => S] = {
+  private def modifyImpl[S: Type, A: Type](obj: Expr[S], focuses: Seq[Expr[S => A]])(using
+      Quotes
+  ): Expr[(A => A) => S] = {
     import quotes.reflect.*
 
     def unsupportedShapeInfo(tree: Tree) =
@@ -69,8 +71,7 @@ object QuicklensMacros {
           symbols.toPathTree
         case (PathTree.Node(children), (symbol :: Nil)) =>
           PathTree.Node {
-            if children.find(_._1 equiv symbol).isEmpty then
-              children :+ (symbol -> Seq(PathTree.Empty))
+            if children.find(_._1 equiv symbol).isEmpty then children :+ (symbol -> Seq(PathTree.Empty))
             else
               children.map {
                 case (sym, trees) if sym equiv symbol =>
@@ -82,14 +83,14 @@ object QuicklensMacros {
           this
         case (PathTree.Node(children), (symbol :: tail)) =>
           PathTree.Node {
-            if children.find(_._1 equiv symbol).isEmpty then
-              children :+ (symbol -> Seq(tail.toPathTree))
+            if children.find(_._1 equiv symbol).isEmpty then children :+ (symbol -> Seq(tail.toPathTree))
             else
               children.map {
                 case (sym, trees) if sym equiv symbol =>
-                  sym -> (trees.init ++ { trees.last match
-                    case PathTree.Empty => Seq(PathTree.Empty, tail.toPathTree)
-                    case node => Seq(node <> tail)
+                  sym -> (trees.init ++ {
+                    trees.last match
+                      case PathTree.Empty => Seq(PathTree.Empty, tail.toPathTree)
+                      case node           => Seq(node <> tail)
                   })
                 case c => c
               }
@@ -101,7 +102,7 @@ object QuicklensMacros {
 
     extension (symbols: Seq[PathSymbol])
       def toPathTree: PathTree = symbols match
-        case Nil => PathTree.Empty
+        case Nil              => PathTree.Empty
         case (symbol :: tail) => PathTree.Node(Seq(symbol -> Seq(tail.toPathTree)))
 
     enum PathSymbol:
@@ -144,7 +145,7 @@ object QuicklensMacros {
       def poorMansLUB: TypeRepr = tpe match {
         case AndType(l, r) if l <:< r => l
         case AndType(l, r) if r <:< l => r
-        case _ => tpe
+        case _                        => tpe
       }
       def widenAll: TypeRepr =
         tpe.widen.dealias.poorMansLUB
@@ -183,7 +184,7 @@ object QuicklensMacros {
 
     def isSum(sym: Symbol): Boolean = {
       sym.flags.is(Flags.Enum) ||
-        (sym.flags.is(Flags.Sealed) && (sym.flags.is(Flags.Trait) || sym.flags.is(Flags.Abstract)))
+      (sym.flags.is(Flags.Sealed) && (sym.flags.is(Flags.Trait) || sym.flags.is(Flags.Abstract)))
     }
 
     def caseClassCopy(
@@ -221,12 +222,14 @@ object QuicklensMacros {
         typeParams match {
           // if the object's type is parametrised, we need to call .copy with the same type parameters
           case Some(typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
-          case _                          => Apply(Select(obj, copy), args)
+          case _                => Apply(Select(obj, copy), args)
         }
       } else if isSum(objSymbol) then {
         obj.tpe.widenAll match {
           case AndType(_, _) =>
-            report.errorAndAbort(s"Implementation limitation: Cannot modify sealed hierarchies mixed with & types. Try providing a more specific type.")
+            report.errorAndAbort(
+              s"Implementation limitation: Cannot modify sealed hierarchies mixed with & types. Try providing a more specific type."
+            )
           case _ =>
         }
         /*
@@ -315,15 +318,16 @@ object QuicklensMacros {
     }
 
     val focusesTrees: Seq[Tree] = focuses.map(_.asTerm)
-    val paths: Seq[Seq[PathSymbol]] = focusesTrees.zip(focuses).map { (tree, focus) => tree match
-      /** Single inlined path */
-      case Inlined(_, _, Block(List(DefDef(_, _, _, Some(p))), _)) =>
-        toPath(p, focus)
-      /** One of paths from modifyAll */
-      case Block(List(DefDef(_, _, _, Some(p))), _) =>
-        toPath(p, focus)
-      case _ =>
-        report.errorAndAbort(unsupportedShapeInfo(tree))
+    val paths: Seq[Seq[PathSymbol]] = focusesTrees.zip(focuses).map { (tree, focus) =>
+      tree match
+        /** Single inlined path */
+        case Inlined(_, _, Block(List(DefDef(_, _, _, Some(p))), _)) =>
+          toPath(p, focus)
+        /** One of paths from modifyAll */
+        case Block(List(DefDef(_, _, _, Some(p))), _) =>
+          toPath(p, focus)
+        case _ =>
+          report.errorAndAbort(unsupportedShapeInfo(tree))
     }
 
     val pathTree: PathTree =

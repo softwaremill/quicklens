@@ -20,7 +20,8 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
     lst
       .modifyAll(
         _.head
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
 
     Cons.copyCount should be(1)
   }
@@ -32,7 +33,8 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
       .modifyAll(
         _.head,
         _.tail.each.head
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
 
     Cons.copyCount should be(2)
   }
@@ -45,7 +47,8 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
         _.head,
         _.tail.each.head,
         _.tail.each.tail.each.head
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
 
     Cons.copyCount should be(3)
   }
@@ -57,7 +60,8 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
       .modifyAll(
         _.tail.each.tail.each.head,
         _.tail.each.tail.each.tail.each.head
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
 
     Cons.copyCount should be(4)
   }
@@ -71,8 +75,9 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
         _.tail.each.tail,
         _.tail,
         _.tail.each.tail
-      ).using {
-        case None => None
+      )
+      .using {
+        case None                   => None
         case Some(Cons(head, tail)) => Some(Cons(head + 1, tail))
       }
 
@@ -87,9 +92,10 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
         _.tail,
         _.tail.each.tail,
         _.tail.each.tail,
-        _.tail,
-      ).using {
-        case None => None
+        _.tail
+      )
+      .using {
+        case None                   => None
         case Some(Cons(head, tail)) => Some(Cons(head + 1, tail))
       }
 
@@ -106,9 +112,10 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
         _.tail.each.tail,
         _.tail.each.tail.each.tail.each.tail,
         _.tail.each.tail,
-        _.tail,
-      ).using {
-        case None => None
+        _.tail
+      )
+      .using {
+        case None                   => None
         case Some(Cons(head, tail)) => Some(Cons(head + 1, tail))
       }
 
@@ -122,7 +129,8 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
       .modifyAll(
         _.tail.each.head,
         _.tail.each.tail.each.head
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
 
     Opt.eachCount should be(2)
   }
@@ -134,7 +142,8 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
       .modifyAll(
         _.tail.each.head,
         _.tail.each.tail.each.head
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
 
     Opt.eachCount should be(2)
   }
@@ -146,7 +155,8 @@ class ModifyAllOptimizedTest extends AnyFlatSpec with Matchers with BeforeAndAft
       .modifyAll(
         _.tail.each.tail.each.head,
         _.tail.each.tail.each.tail.each.head
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
 
     Opt.eachCount should be(3)
   }
@@ -182,7 +192,7 @@ object ModifyAllOptimizedTest {
     override def get: A = a
     override def equals(other: Any): Boolean = other match {
       case Just(a1) => a == a1
-      case _ => false
+      case _        => false
     }
   }
 
@@ -190,7 +200,7 @@ object ModifyAllOptimizedTest {
     def map[A](fa: Opt[A], f: A => A): Opt[A] =
       Opt.eachCount = Opt.eachCount + 1
       fa match {
-        case Nada => Nada
+        case Nada    => Nada
         case Just(a) => Just(f(a))
       }
   }

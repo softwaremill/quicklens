@@ -4,9 +4,8 @@ import com.softwaremill.quicklens.TestData.duplicate
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-/**
-  * This test data is in the same file as the test to ensure correct compilation order.
-  * See https://issues.scala-lang.org/browse/SI-7046.
+/** This test data is in the same file as the test to ensure correct compilation order. See
+  * https://issues.scala-lang.org/browse/SI-7046.
   */
 object SealedTestData {
   case class G(p1: Option[P1])

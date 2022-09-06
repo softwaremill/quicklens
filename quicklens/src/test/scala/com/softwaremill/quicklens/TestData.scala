@@ -63,7 +63,6 @@ object TestData {
   val ll1at2eachdup = List(List(A5("d1"), A5("d2")), List(A5("d3"), A5("d4"), A5("d5")), List(A5("d6d6"), A5("d7d7")))
   val ll1eachat1dup = List(List(A5("d1"), A5("d2d2")), List(A5("d3"), A5("d4d4"), A5("d5")), List(A5("d6"), A5("d7d7")))
 
-
   val s1: Seq[A3] = l1
   val ss1: Seq[Seq[A5]] = ll1
 

@@ -33,7 +33,8 @@ class RepeatedModifyAllTest extends AnyFlatSpec with Matchers {
         _.a.a.a.a.a.a,
         _.a.a.a.a.a.a,
         _.a.a.a.a.a.a
-      ).setTo(2)
+      )
+      .setTo(2)
     res should be(c1e)
   }
 
@@ -64,33 +65,34 @@ class RepeatedModifyAllTest extends AnyFlatSpec with Matchers {
         _.a.a.a.a.a.a,
         _.a.a.a.a.a.a,
         _.a.a.a.a.a.a
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
     res should be(c1e)
   }
 }
 
 object RepeatedModifyAllTest {
   case class C1(
-    a: C2
+      a: C2
   )
 
   case class C2(
-    a: C3
+      a: C3
   )
 
   case class C3(
-    a: C4
+      a: C4
   )
 
   case class C4(
-    a: C5
+      a: C5
   )
 
   case class C5(
-    a: C6
+      a: C6
   )
 
   case class C6(
-    a: Int
+      a: Int
   )
 }
