@@ -1,4 +1,4 @@
-val scalaJSVersion = Option(System.getenv("SCALAJS_VERSION")).getOrElse("1.10.0")
+val scalaJSVersion = Option(System.getenv("SCALAJS_VERSION")).getOrElse("1.10.1")
 val scalaNativeVersion = Option(System.getenv("SCALANATIVE_VERSION")).getOrElse("0.4.4")
 
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % scalaJSVersion)
