@@ -12,7 +12,7 @@ object ModifyAndTypeTest {
   }
 
   case class A1(a: Int)
-  
+
   sealed trait T
   case class C(a: Int) extends T with B
 

@@ -15,7 +15,8 @@ class ModifyAllOrderTest extends AnyFlatSpec with Matchers {
       .modifyAll(
         _.tail.each.tail.each,
         _.tail.each
-      ).using {
+      )
+      .using {
         case Cons(head, tail) if head == 3 =>
           Cons(head + 1, tail)
         case Cons(head, Some(Cons(head2, tail))) if head2 == 3 =>
@@ -35,7 +36,8 @@ class ModifyAllOrderTest extends AnyFlatSpec with Matchers {
       .modifyAll(
         _.tail.each,
         _.tail.each.tail.each
-      ).using {
+      )
+      .using {
         case Cons(head, tail) if head == 3 =>
           Cons(head + 1, tail)
         case Cons(head, Some(Cons(head2, tail))) if head2 == 3 =>
@@ -56,7 +58,8 @@ class ModifyAllOrderTest extends AnyFlatSpec with Matchers {
         _.tail.each.tail.each,
         _.tail.each,
         _.tail.each.tail.each
-      ).using {
+      )
+      .using {
         case Cons(head, tail) if head >= 3 =>
           Cons(head + 1, tail)
         case Cons(head, Some(Cons(head2, tail))) if head2 == 4 =>
@@ -77,7 +80,8 @@ class ModifyAllOrderTest extends AnyFlatSpec with Matchers {
         _.tail.each.tail.each,
         _.tail.each.tail.each,
         _.tail.each
-      ).using {
+      )
+      .using {
         case Cons(head, tail) if head >= 3 =>
           Cons(head + 1, tail)
         case Cons(head, Some(Cons(head2, tail))) if head2 == 4 =>
@@ -98,7 +102,8 @@ class ModifyAllOrderTest extends AnyFlatSpec with Matchers {
         _.each.tail.each.tail.each,
         _.each.tail.each.tail.each,
         _.each.tail.each
-      ).using {
+      )
+      .using {
         case Cons(head, tail) if head >= 3 =>
           Cons(head + 1, tail)
         case Cons(head, Some(Cons(head2, tail))) if head2 == 4 =>
@@ -119,7 +124,8 @@ class ModifyAllOrderTest extends AnyFlatSpec with Matchers {
         _.each.tail.each.tail.each,
         _.each.tail.each,
         _.each.tail.each.tail.each
-      ).using {
+      )
+      .using {
         case Cons(head, tail) if head >= 3 =>
           Cons(head + 1, tail)
         case Cons(head, Some(Cons(head2, tail))) if head2 == 4 =>

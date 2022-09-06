@@ -27,48 +27,49 @@ class EnormousModifyAllTest extends AnyFlatSpec with Matchers {
         _.b.a.a.a.a.a,
         _.c.a.a.a.a.a,
         _.d.a.a.a.a.a
-      ).using(_ + 1)
+      )
+      .using(_ + 1)
     res should be(c1e)
   }
 }
 
 object EnormousModifyAllTest {
   case class C1(
-    a: C2,
-    b: C2,
-    c: C2,
-    d: C2
+      a: C2,
+      b: C2,
+      c: C2,
+      d: C2
   )
 
   case class C2(
-    a: C3,
-    b: C3,
-    c: C3,
-    d: C3
+      a: C3,
+      b: C3,
+      c: C3,
+      d: C3
   )
 
   case class C3(
-    a: C4,
-    b: C4,
-    c: C4,
-    d: C4
+      a: C4,
+      b: C4,
+      c: C4,
+      d: C4
   )
 
   case class C4(
-    a: C5,
-    b: C5,
-    c: C5,
-    d: C5
+      a: C5,
+      b: C5,
+      c: C5,
+      d: C5
   )
 
   case class C5(
-    a: C6,
-    b: C6,
-    c: C6,
-    d: C6
+      a: C6,
+      b: C6,
+      c: C6,
+      d: C6
   )
 
   case class C6(
-    a: Int
+      a: Int
   )
 }
