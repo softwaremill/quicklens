@@ -15,11 +15,11 @@ class CompileTimeTest extends AnyFlatSpec with Matchers {
       
       val c = C(B(1, 1, 1, 1, 1))
       c
-        .modify(_.b.a1).setTo(0)
-        .modify(_.b.a2).setTo(0)
-        .modify(_.b.a3).setTo(0)
-        .modify(_.b.a4).setTo(0)
-        .modify(_.b.a5).setTo(0)
+        .modify(_.b.a1).setTo("")
+        .modify(_.b.a2).setTo("")
+        .modify(_.b.a3).setTo("")
+        .modify(_.b.a4).setTo("")
+        .modify(_.b.a5).setTo("")
   """)
     val end = System.currentTimeMillis()
     (end - start) shouldBe <=(5000L) // that's a lot anyway
