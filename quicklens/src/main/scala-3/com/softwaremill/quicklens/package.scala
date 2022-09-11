@@ -7,7 +7,9 @@ import scala.reflect.ClassTag
 
 package object quicklens {
 
-  extension [S, A](inline obj: S)
+  // #114: obj shouldn't be inline since we want to reference the parameter by-name, rather then embedding the whole
+  // expression whenever obj is used; this is especially important for chained .modify invocations
+  extension [S, A](obj: S)
     /** Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy via
       * `path` on the given `obj`.
       *
