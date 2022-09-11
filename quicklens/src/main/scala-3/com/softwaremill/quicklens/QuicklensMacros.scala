@@ -40,13 +40,22 @@ object QuicklensMacros {
       case Varargs(args) => focus +: args
     }
 
-    val modF = modifyImpl(obj, focuses)
+    val modF = modifyImplCacheObj(obj, focuses)
 
     toPathModify(obj, modF)
   }
 
   def toPathModifyFromFocus[S: Type, A: Type](obj: Expr[S], focus: Expr[S => A])(using Quotes): Expr[PathModify[S, A]] =
-    toPathModify(obj, modifyImpl(obj, Seq(focus)))
+    toPathModify(obj, modifyImplCacheObj(obj, Seq(focus)))
+
+  // #114: in case obj is a complex expression (not a simple by-name reference), we cache it to avoid repeatedly
+  // evaluating it; this especially matters in chained .modify calls
+  private def modifyImplCacheObj[S: Type, A: Type](obj: Expr[S], focuses: Seq[Expr[S => A]])(using
+      Quotes
+  ): Expr[(A => A) => S] = '{
+    val v = $obj
+    ${ modifyImpl('v, focuses) }
+  }
 
   private def modifyImpl[S: Type, A: Type](obj: Expr[S], focuses: Seq[Expr[S => A]])(using
       Quotes
