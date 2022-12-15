@@ -6,6 +6,6 @@ addSbtPlugin("org.scala-native" % "sbt-scala-native" % scalaNativeVersion)
 addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.9.0")
 addSbtPlugin("org.jetbrains.scala" % "sbt-ide-settings" % "1.1.1")
 
-val sbtSoftwareMillVersion = "2.0.9"
+val sbtSoftwareMillVersion = "2.0.12"
 addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-common" % sbtSoftwareMillVersion)
 addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-publish" % sbtSoftwareMillVersion)
