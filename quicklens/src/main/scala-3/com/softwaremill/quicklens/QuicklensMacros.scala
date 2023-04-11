@@ -48,9 +48,10 @@ object QuicklensMacros {
   def toPathModifyFromFocus[S: Type, A: Type](obj: Expr[S], focus: Expr[S => A])(using Quotes): Expr[PathModify[S, A]] =
     toPathModify(obj, modifyImpl(obj, Seq(focus)))
 
-  private def modifyImpl[S: Type, A: Type](obj: Expr[S], focuses: Seq[Expr[S => A]])(using
-      Quotes
-  ): Expr[(A => A) => S] = {
+  private def modifyImpl[S: Type, A: Type](
+      obj: Expr[S],
+      focuses: Seq[Expr[S => A]]
+  )(using Quotes): Expr[(A => A) => S] = {
     import quotes.reflect.*
 
     def unsupportedShapeInfo(tree: Tree) =
@@ -209,8 +210,9 @@ object QuicklensMacros {
           case AppliedType(_, typeParams) => Some(typeParams)
           case _                          => None
         }
-
-        val fieldsIdxs = 1.to(objSymbol.primaryConstructor.paramSymss.flatten.filter(_.isTerm).length)
+        val constructorTree: DefDef = objSymbol.primaryConstructor.tree.asInstanceOf[DefDef]
+        val firstParamListLength: Int = constructorTree.termParamss.headOption.map(_.params).toList.flatten.length
+        val fieldsIdxs = 1.to(firstParamListLength)
         val args = fieldsIdxs.map { i =>
           val defaultMethod = obj.select(symbolMethodByNameUnsafe(objSymbol, "copy$default$" + i.toString))
           argsMap.getOrElse(
@@ -218,6 +220,11 @@ object QuicklensMacros {
             typeParams.fold(defaultMethod)(defaultMethod.appliedToTypes)
           )
         }.toList
+
+        if constructorTree.termParamss.drop(1).exists(_.params.exists(!_.symbol.flags.is(Flags.Implicit))) then
+          report.errorAndAbort(
+            s"Implementation limitation: Only the first parameter list of the modified case classes can be non-implicit."
+          )
 
         typeParams match {
           // if the object's type is parametrised, we need to call .copy with the same type parameters
@@ -335,6 +342,7 @@ object QuicklensMacros {
 
     val res: (Expr[A => A] => Expr[S]) = (mod: Expr[A => A]) =>
       Typed(mapToCopy(Symbol.spliceOwner, mod, obj.asTerm, pathTree), TypeTree.of[S]).asExpr.asInstanceOf[Expr[S]]
+
     to(res)
   }
 }
