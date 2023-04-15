@@ -15,6 +15,33 @@ class ModifyEachWhereTest extends AnyFlatSpec with Matchers {
     x4.modify(_.x5.eachWhere(_ => false).name).using(duplicate) should be(x4)
   }
 
+  it should "modify be able to eachWhere a lambda" in {
+    val foo = true
+    x4.modify(_.x5.eachWhere(_ => foo).name).using(duplicate) should be(x4dup)
+    val bar = false
+    x1.modify(_.x2.x3.eachWhere(_ => bar).x4.x5.eachWhere(_ => bar).name).using(duplicate) should be(x1)
+  }
+
+  it should "modify be able to eachWhere a lambda 1" in {
+    val one = "1"
+    person
+      .modify(_.addresses.each.street.eachWhere(_.name.startsWith(one)).name)
+      .using(_.toUpperCase)
+  }
+
+  it should "allow referencing local variable" in {
+    val zmienna = "d"
+    modify(z1)(_.name.eachWhere(_.startsWith(zmienna))).using(duplicate) should be(z1dup)
+  }
+
+  it should "allow referencing local variable 1" in {
+    val lang2 = "hey"
+
+    Seq(Foo("asdf"))
+      .modify(_.eachWhere(_.field != lang2).field)
+      .setTo(lang2) should be (Seq(Foo("hey")))
+  }
+
   it should "not modify an optional case class field if it is none regardless of the condition" in {
     modify(x4none)(_.x5.eachWhere(_ => true).name).using(duplicate) should be(x4none)
     modify(x4none)(_.x5.eachWhere(_ => false).name).using(duplicate) should be(x4none)

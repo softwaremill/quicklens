@@ -251,7 +251,7 @@ object QuicklensMacros {
         case FunctorPathElement(functor, method, xargs @ _*) :: tail =>
           val newRootPathEl = TermName(c.freshName())
           // combine the selected path with variable args
-          val args = generateSelects(newRootPathEl, tail) :: xargs.toList
+          val args = generateSelects(newRootPathEl, tail) :: xargs.toList.map(c.untypecheck(_))
           val rootPathElParamTree = ValDef(Modifiers(), rootPathEl, TypeTree(), EmptyTree)
           val functorMap = q"$functor.$method(..$args)(($rootPathElParamTree) => $newVal)"
           generateCopies(newRootPathEl, tail, functorMap)
