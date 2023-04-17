@@ -287,7 +287,7 @@ object QuicklensMacros {
       )
       val closure = Closure(Ref(defdefSymbol), None)
       val block = Block(List(defdefStatements), closure)
-      Apply(fun, List(objTerm, block) ++ f.args)
+      Apply(fun, List(objTerm, block) ++ f.args.map(_.changeOwner(owner)))
 
     def accumulateToCopy(
         owner: Symbol,

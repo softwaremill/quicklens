@@ -98,4 +98,15 @@ object TestData {
 
   val invInt: Variance = Invariance(Type("Int"))
   val invLong: Variance = Invariance(Type("Long"))
+
+  case class Street(name: String)
+  case class Address(street: Option[Street])
+  case class Person(addresses: List[Address])
+
+  val person = Person(List(
+    Address(Some(Street("1 Functional Rd."))),
+    Address(Some(Street("2 Imperative Dr.")))
+  ))
+
+  case class Foo(field: String)
 }
