@@ -67,7 +67,7 @@ object QuicklensMacros {
       case Empty
       case Node(children: Seq[(PathSymbol, Seq[PathTree])])
 
-      def <>(symbols: Seq[PathSymbol]): PathTree = (this, symbols) match
+      def <>(symbols: Seq[PathSymbol]): PathTree = ((this, symbols): @unchecked) match
         case (PathTree.Empty, _) =>
           symbols.toPathTree
         case (PathTree.Node(children), (symbol :: Nil)) =>
@@ -283,7 +283,9 @@ object QuicklensMacros {
       )
       val defdefStatements = DefDef(
         defdefSymbol,
-        { case List(List(x)) => Some(mapToCopy(defdefSymbol, mod, x.asExpr.asTerm, tree)) }
+        ((_: @unchecked) match
+          case List(List(x)) => Some(mapToCopy(defdefSymbol, mod, x.asExpr.asTerm, tree))
+        )
       )
       val closure = Closure(Ref(defdefSymbol), None)
       val block = Block(List(defdefStatements), closure)
