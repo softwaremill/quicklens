@@ -9,7 +9,7 @@ package object quicklens {
 
   // #114: obj shouldn't be inline since we want to reference the parameter by-name, rather then embedding the whole
   // expression whenever obj is used; this is especially important for chained .modify invocations
-  extension [S, A](obj: S)
+  extension [S](obj: S)
     /** Create an object allowing modifying the given (deeply nested) field accessible in a `case class` hierarchy via
       * `path` on the given `obj`.
       *
@@ -17,7 +17,7 @@ package object quicklens {
       *
       * You can use `.each` to traverse options, lists, etc.
       */
-    inline def modify(inline path: S => A): PathModify[S, A] = ${ toPathModifyFromFocus('obj, 'path) }
+    inline def modify[A](inline path: S => A): PathModify[S, A] = ${ toPathModifyFromFocus('obj, 'path) }
 
     /** Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy via
       * `paths` on the given `obj`.
@@ -26,7 +26,7 @@ package object quicklens {
       *
       * You can use `.each` to traverse options, lists, etc.
       */
-    inline def modifyAll(inline path: S => A, inline paths: (S => A)*): PathModify[S, A] = ${
+    inline def modifyAll[A](inline path: S => A, inline paths: (S => A)*): PathModify[S, A] = ${
       modifyAllImpl('obj, 'path, 'paths)
     }
 
