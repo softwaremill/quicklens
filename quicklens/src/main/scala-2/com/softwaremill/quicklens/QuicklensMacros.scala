@@ -119,7 +119,7 @@ object QuicklensMacros {
 
     sealed trait PathElement
     case class TermPathElement(term: c.TermName, access: PathAccess, xargs: c.Tree*) extends PathElement
-    case class SubtypePathElement(subtype: c.Symbol) extends PathElement
+    case class SubtypePathElement(subtype: c.Type) extends PathElement
     case class FunctorPathElement(functor: c.Tree, method: c.TermName, xargs: c.Tree*) extends PathElement
 
     /** Determine if the `.copy` method should be applied directly or through a match across all subclasses (for sealed
@@ -168,7 +168,7 @@ object QuicklensMacros {
           val access = determinePathAccess(parent.tpe.typeSymbol)
           collectPathElements(parent, TermPathElement(child, access) :: acc)
         case q"$tpname[..$_]($parent).when[$tp]" if typeSupported(tpname) =>
-          collectPathElements(parent, SubtypePathElement(tp.tpe.typeSymbol) :: acc)
+          collectPathElements(parent, SubtypePathElement(tp.tpe) :: acc)
         case q"$parent.$method(..$xargs)" if methodSupported(method) =>
           collectPathElements(parent, TermPathElement(method, DirectPathAccess, xargs: _*) :: acc)
         case q"$tpname[..$_]($t)($f)" if typeSupported(tpname) =>

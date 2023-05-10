@@ -17,6 +17,14 @@ object ModifyWhenTestData {
 
   val zoo = Zoo(List(dog, cat))
   val olderZoo = Zoo(List(olderDog, olderCat))
+
+  trait MyOption[+A]
+  case class MySome[+A](value: A) extends MyOption[A]
+  case object MyNone extends MyOption[Nothing]
+
+  val someDog: MyOption[Dog] = MySome(Dog(4))
+  val someOlderDog: MyOption[Dog] = MySome(Dog(5))
+  val noDog: MyOption[Dog] = MyNone
 }
 
 class ModifyWhenTest extends AnyFlatSpec with Matchers {
@@ -41,5 +49,13 @@ class ModifyWhenTest extends AnyFlatSpec with Matchers {
         _.animals.each.when[Cat].ages.at(0)
       )
       .using(_ + 1) shouldEqual olderZoo
+  }
+
+  it should "modify a field in a subtypes (parameterized)" in {
+    someDog.modify(_.when[MySome[Dog]].value.age).using(_ + 1) shouldEqual someOlderDog
+  }
+
+  it should "ignore subtypes other than the selected one (parameterized)" in {
+    noDog.modify(_.when[MySome[Dog]].value.age).using(_ + 1) shouldEqual MyNone
   }
 }
