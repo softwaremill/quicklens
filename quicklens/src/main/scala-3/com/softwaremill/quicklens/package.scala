@@ -19,16 +19,16 @@ package object quicklens {
       */
     inline def modify[A](inline path: S => A): PathModify[S, A] = ${ toPathModifyFromFocus('obj, 'path) }
 
-    /** Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy via
-      * `paths` on the given `obj`.
-      *
-      * All modifications are side-effect free and create copies of the original objects.
-      *
-      * You can use `.each` to traverse options, lists, etc.
-      */
-    inline def modifyAll[A](inline path: S => A, inline paths: (S => A)*): PathModify[S, A] = ${
-      modifyAllImpl('obj, 'path, 'paths)
-    }
+  /** Create an object allowing modifying the given (deeply nested) fields accessible in a `case class` hierarchy via
+    * `paths` on the given `obj`.
+    *
+    * All modifications are side-effect free and create copies of the original objects.
+    *
+    * You can use `.each` to traverse options, lists, etc.
+    */
+  inline def modifyAll[A](inline path: S => A, inline paths: (S => A)*): PathModify[S, A] = ${
+    modifyAllImpl('obj, 'path, 'paths)
+  }
 
   case class PathModify[S, A](obj: S, f: (A => A) => S) {
 
