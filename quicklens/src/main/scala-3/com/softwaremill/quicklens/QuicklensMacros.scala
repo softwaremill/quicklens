@@ -326,18 +326,23 @@ object QuicklensMacros {
         accumulateToCopy(owner, mod, objTerm, children)
     }
 
-    val focusesTrees: Seq[Tree] = focuses.map(_.asTerm)
-    val paths: Seq[Seq[PathSymbol]] = focusesTrees.zip(focuses).map { (tree, focus) =>
-      tree match
-        /** Single inlined path */
-        case Inlined(_, _, Block(List(DefDef(_, _, _, Some(p))), _)) =>
-          toPath(p, focus)
-        /** One of paths from modifyAll */
-        case Block(List(DefDef(_, _, _, Some(p))), _) =>
-          toPath(p, focus)
-        case _ =>
-          report.errorAndAbort(unsupportedShapeInfo(tree))
+    def extractFocus(tree: Tree): Tree = tree match {
+      /** Single inlined path */
+      case Inlined(_, _, p) =>
+        extractFocus(p)
+      /** One of paths from modifyAll */
+      case Block(List(DefDef(_, _, _, Some(p))), _) =>
+        p
+      case _ =>
+        println(tree)
+        report.errorAndAbort(unsupportedShapeInfo(tree))
     }
+
+    val focusesTrees: Seq[Tree] = focuses.map(_.asTerm)
+    val paths: Seq[Seq[PathSymbol]] =
+      focusesTrees.zip(focuses).map { (tree, focus) =>
+        toPath(extractFocus(tree), focus)
+      }
 
     val pathTree: PathTree =
       paths.foldLeft(PathTree.empty) { (tree, path) => tree <> path }
