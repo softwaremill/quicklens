@@ -334,7 +334,6 @@ object QuicklensMacros {
       case Block(List(DefDef(_, _, _, Some(p))), _) =>
         p
       case _ =>
-        println(tree)
         report.errorAndAbort(unsupportedShapeInfo(tree))
     }
 
