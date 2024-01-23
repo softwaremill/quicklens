@@ -57,4 +57,12 @@ class ModifyMapAtTest extends AnyFlatSpec with Matchers {
       modify(m1)(_.at("K0").a5.name).using(duplicate)
     }
   }
+
+  it should "modify a map using at with a derived class" in {
+    class C
+    object D extends C
+    val m = Map[C, String](D -> "")
+    val expected = Map(D -> "x")
+    modify(m)(_.at(D)).setTo("x") should be(expected)
+  }
 }

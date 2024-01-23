@@ -161,7 +161,7 @@ package object quicklens {
     }
   }
 
-  trait QuicklensIndexedFunctor[F[_], I] {
+  trait QuicklensIndexedFunctor[F[_], -I] {
     def at[A](fa: F[A], f: A => A, idx: I): F[A]
     def atOrElse[A](fa: F[A], f: A => A, idx: I, default: => A): F[A]
     def index[A](fa: F[A], f: A => A, idx: I): F[A]
