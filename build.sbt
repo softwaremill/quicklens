@@ -67,7 +67,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     libraryDependencies ++= compilerLibrary(scalaVersion.value),
     versionSpecificScalaSources,
     libraryDependencies ++= Seq("flatspec", "shouldmatchers").map(m =>
-      "org.scalatest" %%% s"scalatest-$m" % "3.2.17" % Test
+      "org.scalatest" %%% s"scalatest-$m" % "3.2.18" % Test
     )
   )
   .jvmPlatform(
