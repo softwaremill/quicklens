@@ -5,7 +5,7 @@ import com.softwaremill.UpdateVersionInDocs
 val scala211 = "2.11.12"
 val scala212 = "2.12.19"
 val scala213 = "2.13.13"
-val scala3 = "3.3.3"
+val scala3 = "3.5.0"
 
 val scalaIdeaVersion = scala3 // the version for which to import sources into intellij
 
