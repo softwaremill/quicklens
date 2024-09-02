@@ -1,6 +1,6 @@
 package com.softwaremill
 
-import scala.collection.{Factory, SortedMap}
+import scala.collection.SortedMap
 import scala.annotation.compileTimeOnly
 import com.softwaremill.quicklens.QuicklensMacros._
 import scala.reflect.ClassTag
