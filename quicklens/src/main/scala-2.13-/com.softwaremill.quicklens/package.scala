@@ -1,7 +1,5 @@
 package com.softwaremill
 
-import com.softwaremill.quicklens.{QuicklensMapAtFunctor, canOnlyBeUsedInsideModify}
-
 import scala.annotation.compileTimeOnly
 import scala.collection.TraversableLike
 import scala.collection.SeqLike
@@ -298,19 +296,4 @@ package object quicklens extends LowPriorityImplicits {
       override def eachLeft(e: Either[L, R])(f: (L) => L) = e.left.map(f)
       override def eachRight(e: Either[L, R])(f: (R) => R) = e.right.map(f)
     }
-}
-
-sealed trait LowPriorityImplicits {
-
-  import quicklens._
-
-  /** `QuicklensEach` is in `LowPriorityImplicits` to not conflict with the `QuicklensMapAtFunctor` on `each` calls.
-    */
-  implicit class QuicklensEach[F[_], T](t: F[T])(implicit f: QuicklensFunctor[F, T]) {
-    @compileTimeOnly(canOnlyBeUsedInsideModify("each"))
-    def each: T = sys.error("")
-
-    @compileTimeOnly(canOnlyBeUsedInsideModify("eachWhere"))
-    def eachWhere(p: T => Boolean): T = sys.error("")
-  }
 }
