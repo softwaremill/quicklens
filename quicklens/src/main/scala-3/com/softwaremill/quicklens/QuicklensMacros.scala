@@ -174,8 +174,8 @@ object QuicklensMacros {
     def symbolMethodByNameOrError(sym: Symbol, name: String): Symbol = {
       sym.methodMember(name) match
         case List(m) => m
-        case Nil => symbolAccessorByNameOrError(sym, name)
-        case _ => report.errorAndAbort(multipleMatchingMethods(sym.name, name))
+        case Nil     => symbolAccessorByNameOrError(sym, name)
+        case _       => report.errorAndAbort(multipleMatchingMethods(sym.name, name))
     }
 
     def termMethodByNameUnsafe(term: Term, name: String): Symbol = {

@@ -15,7 +15,7 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     object Vec {
       def apply(x: Double, y: Double): Vec = new Vec(V(x, y)) {}
     }
-    
+
     val vec = Vec(1, 2)
     val modified = vec.modify(_.x).using(_ + 1)
     val expected = Vec(2, 2)
