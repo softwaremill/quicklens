@@ -168,13 +168,13 @@ object QuicklensMacros {
     def symbolAccessorByNameOrError(sym: Symbol, name: String): Symbol = {
       val mem = sym.fieldMember(name)
       if mem != Symbol.noSymbol then mem
-      else report.errorAndAbort(noSuchMember(sym.name, name))
+      else symbolMethodByNameOrError(sym, name)
     }
 
     def symbolMethodByNameOrError(sym: Symbol, name: String): Symbol = {
       sym.methodMember(name) match
         case List(m) => m
-        case Nil     => symbolAccessorByNameOrError(sym, name)
+        case Nil     => report.errorAndAbort(noSuchMember(sym.name, name))
         case _       => report.errorAndAbort(multipleMatchingMethods(sym.name, name))
     }
 
@@ -202,9 +202,10 @@ object QuicklensMacros {
         obj: Term,
         fields: Seq[(PathSymbol.Field, Seq[PathTree])]
     ): Term = {
-      val objSymbol = obj.tpe.widenAll.matchingTypeSymbol
+      val objTpe = obj.tpe.widenAll
+      val objSymbol = objTpe.matchingTypeSymbol
       if isSum(objSymbol) then {
-        obj.tpe.widenAll match {
+        objTpe match {
           case AndType(_, _) =>
             report.errorAndAbort(
               s"Implementation limitation: Cannot modify sealed hierarchies mixed with & types. Try providing a more specific type."
@@ -235,7 +236,7 @@ object QuicklensMacros {
       } else if isProduct(objSymbol) || isProductLike(objSymbol) then {
         val copy = symbolMethodByNameOrError(objSymbol, "copy")
         val argsMap: Map[String, Term] = fields.map { (field, trees) =>
-          val fieldMethod = symbolMethodByNameOrError(objSymbol, field.name)
+          val fieldMethod = symbolAccessorByNameOrError(objSymbol, field.name)
           val resTerm: Term = trees.foldLeft[Term](Select(obj, fieldMethod)) { (term, tree) =>
             mapToCopy(owner, mod, term, tree)
           }
@@ -243,7 +244,7 @@ object QuicklensMacros {
           field.name -> namedArg
         }.toMap
 
-        val typeParams = obj.tpe.widenAll match {
+        val typeParams = objTpe match {
           case AppliedType(_, typeParams) => Some(typeParams)
           case _                          => None
         }
@@ -272,7 +273,7 @@ object QuicklensMacros {
           case _                => Apply(Select(obj, copy), args)
         }
       } else
-        report.errorAndAbort(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol")
+        report.errorAndAbort(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol of type ${objTpe.show} (${obj.show})")
     }
 
     def applyFunctionDelegate(
