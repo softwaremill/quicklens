@@ -36,4 +36,59 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     docs.modify(_.paths.pathItems).using(m => m + ("a" -> PathItem()))
   }
 
+  it should "modify a case class with an additional explicit copy" in {
+    case class Frozen(state: String, ext: Int) {
+      def copy(stateC: Char): Frozen = Frozen(stateC.toString, ext)
+    }
+
+    val f = Frozen("A", 0)
+    f.modify(_.state).setTo("B")
+  }
+
+  it should "modify a case class with an ambiguous additional explicit copy" in {
+    case class Frozen(state: String, ext: Int) {
+      def copy(state: String): Frozen = Frozen(state, ext)
+    }
+
+    val f = Frozen("A", 0)
+    f.modify(_.state).setTo("B")
+  }
+
+  it should "modify a class with two explicit copy methods" in {
+    class Frozen(val state: String, val ext: Int) {
+      def copy(state: String = state, ext: Int = ext): Frozen = new Frozen(state, ext)
+      def copy(state: String): Frozen = new Frozen(state, ext)
+    }
+
+    val f = new Frozen("A", 0)
+    f.modify(_.state).setTo("B")
+  }
+
+  it should "modify a case class with an ambiguous additional explicit copy and pick the synthetic one first" in {
+    var accessed = 0
+    case class Frozen(state: String, ext: Int) {
+      def copy(state: String): Frozen =
+        accessed += 1
+        Frozen(state, ext)
+    }
+
+    val f = Frozen("A", 0)
+    f.modify(_.state).setTo("B")
+    accessed shouldEqual 0
+  }
+
+  // TODO: Would be nice to be able to handle this case. Based on the types, it
+  // is obvious, that the explicit copy should be picked, but I'm not sure if we
+  // can get that information
+
+  // it should "pick the correct copy method, based on the type" in {
+  //   case class Frozen(state: String, ext: Int) {
+  //     def copy(state: Char): Frozen =
+  //       Frozen(state.toString, ext)
+  //   }
+
+  //   val f = Frozen("A", 0)
+  //   f.modify(_.state).setTo('B')
+  // }
+
 }
