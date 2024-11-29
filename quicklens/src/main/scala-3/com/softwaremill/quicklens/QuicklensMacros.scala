@@ -60,7 +60,7 @@ object QuicklensMacros {
 
     def multipleMatchingMethods(tpeStr: String, name: String, syms: Seq[Symbol]) =
       val symsStr = syms.map(s => s" - $s: ${s.termRef.dealias.widen.show}").mkString("\n", "\n", "")
-      s"Multiple methods named $name found in $tpeStr, namely:$symsStr"
+      s"Multiple methods named $name found in $tpeStr: $symsStr"
 
     def methodSupported(method: String) =
       Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index", "when").contains(method)
