@@ -58,8 +58,9 @@ object QuicklensMacros {
     def noSuchMember(tpeStr: String, name: String) =
       s"$tpeStr has no member named $name"
 
-    def multipleMatchingMethods(tpeStr: String, name: String) =
-      s"Multiple methods named $name found in $tpeStr"
+    def multipleMatchingMethods(tpeStr: String, name: String, syms: Seq[Symbol]) =
+      val symsStr = syms.map(s => s" - $s: ${s.termRef.dealias.widen.show}").mkString("\n", "\n", "")
+      s"Multiple methods named $name found in $tpeStr, namely:$symsStr"
 
     def methodSupported(method: String) =
       Seq("at", "each", "eachWhere", "eachRight", "eachLeft", "atOrElse", "index", "when").contains(method)
@@ -168,19 +169,36 @@ object QuicklensMacros {
     def symbolAccessorByNameOrError(sym: Symbol, name: String): Symbol = {
       val mem = sym.fieldMember(name)
       if mem != Symbol.noSymbol then mem
-      else symbolMethodByNameOrError(sym, name)
+      else methodSymbolByNameOrError(sym, name)
     }
 
-    def symbolMethodByNameOrError(sym: Symbol, name: String): Symbol = {
+    def methodSymbolByNameOrError(sym: Symbol, name: String): Symbol = {
       sym.methodMember(name) match
         case List(m) => m
         case Nil     => report.errorAndAbort(noSuchMember(sym.name, name))
-        case _       => report.errorAndAbort(multipleMatchingMethods(sym.name, name))
+        case lst     => report.errorAndAbort(multipleMatchingMethods(sym.name, name, lst))
+    }
+
+    def methodSymbolByNameAndArgsOrError(sym: Symbol, name: String, argsMap: Map[String, Term]): Symbol = {
+      val argNames = argsMap.keys
+      sym.methodMember(name).filter{ msym =>
+        // for copy, we filter out the methods that don't have the desired parameter names
+        val paramNames = msym.paramSymss.flatten.filter(_.isTerm).map(_.name)
+        argNames.forall(paramNames.contains)
+      } match
+        case List(m) => m
+        case Nil     => report.errorAndAbort(noSuchMember(sym.name, name))
+        case lst @ (m :: _)     =>
+          // if we have multiple matching copy methods, pick the synthetic one, if it exists, otherwise, pick any method
+          val syntheticCopies = lst.filter(_.flags.is(Flags.Synthetic))
+          syntheticCopies match
+            case List(mSynth) => mSynth
+            case _ => m
     }
 
     def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
       val typeSymbol = term.tpe.widenAll.typeSymbol
-      symbolMethodByNameOrError(typeSymbol, name)
+      methodSymbolByNameOrError(typeSymbol, name)
     }
 
     def isProduct(sym: Symbol): Boolean = {
@@ -193,7 +211,7 @@ object QuicklensMacros {
     }
 
     def isProductLike(sym: Symbol): Boolean = {
-      sym.methodMember("copy").size == 1
+      sym.methodMember("copy").size >= 1
     }
 
     def caseClassCopy(
@@ -234,7 +252,6 @@ object QuicklensMacros {
           If(ifCond, ifThen, ifElse)
         }
       } else if isProduct(objSymbol) || isProductLike(objSymbol) then {
-        val copy = symbolMethodByNameOrError(objSymbol, "copy")
         val argsMap: Map[String, Term] = fields.map { (field, trees) =>
           val fieldMethod = symbolAccessorByNameOrError(objSymbol, field.name)
           val resTerm: Term = trees.foldLeft[Term](Select(obj, fieldMethod)) { (term, tree) =>
@@ -243,6 +260,7 @@ object QuicklensMacros {
           val namedArg = NamedArg(field.name, resTerm)
           field.name -> namedArg
         }.toMap
+        val copy = methodSymbolByNameAndArgsOrError(objSymbol, "copy", argsMap)
 
         val typeParams = objTpe match {
           case AppliedType(_, typeParams) => Some(typeParams)
@@ -253,7 +271,7 @@ object QuicklensMacros {
 
         val args = copyParamNames.zipWithIndex.map { (n, _i) =>
           val i = _i + 1
-          val defaultMethod = obj.select(symbolMethodByNameOrError(objSymbol, "copy$default$" + i.toString))
+          val defaultMethod = obj.select(methodSymbolByNameOrError(objSymbol, "copy$default$" + i.toString))
           // for extension methods, might need sth more like this: (or probably some weird implicit conversion)
           // val defaultGetter = obj.select(symbolMethodByNameOrError(objSymbol, n))
           argsMap.getOrElse(
