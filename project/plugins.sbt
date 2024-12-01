@@ -1,9 +1,9 @@
-val scalaJSVersion = Option(System.getenv("SCALAJS_VERSION")).getOrElse("1.16.0")
+val scalaJSVersion = Option(System.getenv("SCALAJS_VERSION")).getOrElse("1.17.0")
 val scalaNativeVersion = Option(System.getenv("SCALANATIVE_VERSION")).getOrElse("0.4.17")
 
 addSbtPlugin("org.scala-js" % "sbt-scalajs" % scalaJSVersion)
 addSbtPlugin("org.scala-native" % "sbt-scala-native" % scalaNativeVersion)
-addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.10.0")
+addSbtPlugin("com.eed3si9n" % "sbt-projectmatrix" % "0.10.1")
 addSbtPlugin("org.jetbrains.scala" % "sbt-ide-settings" % "1.1.2")
 
 val sbtSoftwareMillVersion = "2.0.20"
