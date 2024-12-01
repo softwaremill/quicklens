@@ -58,6 +58,9 @@ object QuicklensMacros {
     def noSuchMember(tpeStr: String, name: String) =
       s"$tpeStr has no member named $name"
 
+    def noSuitableMember(tpeStr: String, name: String, argNames: Iterable[String]) =
+      s"$tpeStr has no member $name with parameters ${argNames.mkString("(", ", ", ")")}"
+
     def multipleMatchingMethods(tpeStr: String, name: String, syms: Seq[Symbol]) =
       val symsStr = syms.map(s => s" - $s: ${s.termRef.dealias.widen.show}").mkString("\n", "\n", "")
       s"Multiple methods named $name found in $tpeStr: $symsStr"
@@ -181,13 +184,16 @@ object QuicklensMacros {
 
     def methodSymbolByNameAndArgsOrError(sym: Symbol, name: String, argsMap: Map[String, Term]): Symbol = {
       val argNames = argsMap.keys
-      sym.methodMember(name).filter{ msym =>
+      val allCopyMembers = sym.methodMember(name)
+      allCopyMembers.filter{ msym =>
         // for copy, we filter out the methods that don't have the desired parameter names
         val paramNames = msym.paramSymss.flatten.filter(_.isTerm).map(_.name)
         argNames.forall(paramNames.contains)
       } match
         case List(m) => m
-        case Nil     => report.errorAndAbort(noSuchMember(sym.name, name))
+        case Nil     =>
+          if allCopyMembers.isEmpty then report.errorAndAbort(noSuchMember(sym.name, name))
+          else report.errorAndAbort(noSuitableMember(sym.name, name, argNames))
         case lst @ (m :: _)     =>
           // if we have multiple matching copy methods, pick the synthetic one, if it exists, otherwise, pick any method
           val syntheticCopies = lst.filter(_.flags.is(Flags.Synthetic))
