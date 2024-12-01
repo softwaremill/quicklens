@@ -77,6 +77,19 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     accessed shouldEqual 0
   }
 
+  it should "not compile when modifying a field which is not present as a copy parameter" in {
+    """
+    case class Content(x: String)
+
+    class A(val c: Content) {
+      def copy(x: String = c.x): A = new A(Content(x))
+    }
+
+    val a = new A(Content("A"))
+    val am = a.modify(_.c).setTo(Content("B"))
+    """ shouldNot compile
+  }
+
   // TODO: Would be nice to be able to handle this case. Based on the types, it
   // is obvious, that the explicit copy should be picked, but I'm not sure if we
   // can get that information
