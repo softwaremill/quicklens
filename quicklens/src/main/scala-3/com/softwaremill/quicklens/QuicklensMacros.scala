@@ -343,7 +343,7 @@ object QuicklensMacros {
                 callMethod(Ref(objCompanion), copy, argsWithObj)
               case None => report.errorAndAbort(noSuchMember(objSymbol.name, "copy"))
       } else
-        report.errorAndAbort(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol of type ${objTpe.show} (${obj.show})")
+        report.errorAndAbort(s"Unsupported source object: must be a case class, sealed trait or class with copy method, but got: $objSymbol of type ${objTpe.show} (${obj.show})")
     }
 
     def applyFunctionDelegate(
