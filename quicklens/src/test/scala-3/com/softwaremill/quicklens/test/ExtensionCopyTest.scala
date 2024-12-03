@@ -58,32 +58,32 @@ class ExtensionCopyTest extends AnyFlatSpec with Matchers {
     val b = a.modify(_.x).using(_ + 1)
     println(b)
   }
-  /*
-
-  it should "modify a class with an extension copy method" in {
+  it should "modify a class with extension methods in companion" in {
     case class V(x: Double, y: Double)
 
     class VecClass(val v: V)
 
     object VecClass {
       def apply(x: Double, y: Double): VecClass = new VecClass(V(x, y))
+
+      extension (v: VecClass) {
+        def x: Double = v.v.x
+        def y: Double = v.v.y
+        def copy(x: Double = v.x, y: Double = v.y): VecClass = new VecClass(V(x, y))
+      }
     }
 
-    extension (v: VecClass) {
-      def x: Double = v.v.x
-      def y: Double = v.v.y
-      def copy(x: Double = v.x, y: Double = v.y): VecClass = new VecClass(V(x, y))
-    }
     val a = VecClass(1, 2)
     val b = a.modify(_.x).using(_ + 1)
     println(b)
   }
-  it should "modify an opaque type with an extension copy method" in {
+  /*
+  it should "modify an opaque type with extension methods" in {
     import ExtensionCopyTest.*
 
     val a = Vec(1, 2)
     val b = a.modify(_.x).using(_ + 1)
     println(b)
   }
-   */
+  */
 }

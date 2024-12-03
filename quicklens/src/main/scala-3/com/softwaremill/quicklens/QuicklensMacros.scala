@@ -133,8 +133,14 @@ object QuicklensMacros {
         /** Method call with one type parameter and using clause */
         case a @ Apply(TypeApply(Apply(TypeApply(Ident(s), _), idents), typeTrees), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath(_, focus)) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
-        case Apply(Ident(ident), Seq(deep)) => // this is an extension method, which is called e.g. as x(_$1)
-          toPath(deep, focus) :+ PathSymbol.Field(ident)
+        case Apply(obj, Seq(deep)) => // this is an extension method, which is called e.g. as x(_$1)
+          obj match
+            case Ident(ident) =>
+              toPath(deep, focus) :+ PathSymbol.Field(ident)
+            case Select(term, member) =>
+              toPath(deep, focus) :+ PathSymbol.Field(member)
+            case other =>
+              report.errorAndAbort(unsupportedShapeInfo(focus.asTerm))
         /** Field access */
         case Apply(deep, idents) =>
           toPath(deep, focus) ++ idents.flatMap(toPath(_, focus))
@@ -168,17 +174,38 @@ object QuicklensMacros {
           Symbol.noSymbol
       }
 
-    def symbolAccessorByNameOrError(sym: Symbol, name: String): Symbol = {
-      val mem = sym.fieldMember(name)
-      if mem != Symbol.noSymbol then mem
-      else methodSymbolByNameOrError(sym, name)
+    def symbolAccessorByNameOrError(obj: Term, name: String): Term = {
+      val objTpe = obj.tpe.widenAll
+      val objSymbol = objTpe.matchingTypeSymbol
+      val mem = objSymbol.fieldMember(name)
+      if (mem != Symbol.noSymbol)
+        Select(obj, mem)
+      else
+        //Select(obj, mem)
+        objSymbol.methodMember(name) match
+          case List(m) =>
+            Select(obj, m)
+          case Nil =>
+            findExtensionMethod(objSymbol, name) match {
+              case List((owner, extension)) =>
+                Apply(Select(owner, extension), List(obj))
+              case syms =>
+                reportMethodError(objSymbol, name, syms.map(_._2))
+            }
+          case lst =>
+            report.errorAndAbort(multipleMatchingMethods(objSymbol.name, name, lst))
+    }
+
+    def reportMethodError(sym: Symbol, name: String, lst: List[Symbol]): Nothing = {
+      lst match
+        case Nil => report.errorAndAbort(noSuchMember(sym.name, name))
+        case lst => report.errorAndAbort(multipleMatchingMethods(sym.name, name, lst))
     }
 
     def methodSymbolByNameOrError(sym: Symbol, name: String): Symbol = {
       sym.methodMember(name) match
         case List(m) => m
-        case Nil     => report.errorAndAbort(noSuchMember(sym.name, name))
-        case lst     => report.errorAndAbort(multipleMatchingMethods(sym.name, name, lst))
+        case lst     => reportMethodError(sym, name, lst)
     }
 
     def filterMethodsByNameAndArgs(allMethods: List[Symbol], argsMap: Map[String, Term]): Option[Symbol] = {
@@ -268,18 +295,17 @@ object QuicklensMacros {
       (sym.flags.is(Flags.Sealed) && (sym.flags.is(Flags.Trait) || sym.flags.is(Flags.Abstract)))
     }
 
-    def findExtensionMethod(using Quotes)(sym: Symbol, methodName: String): List[Symbol] = {
+    def findExtensionMethod(using Quotes)(sym: Symbol, methodName: String): List[(Term, Symbol)] = {
       // TODO: can we check parameter types somehow?
       def isExtensionMethod(sym: Symbol): Boolean = sym.isDefDef && sym.paramSymss.headOption.exists(_.sizeIs == 1)
 
       // TODO: try to search in symbol parent object as well
       val symbols = Seq(sym.companionModule).filter(_ != Symbol.noSymbol)
 
-      symbols.flatMap(_.declaredMethods).filter(sym => sym.name == methodName).filter(isExtensionMethod).toList
+      symbols.flatMap(s => s.declaredMethods.map(Ref(s) -> _)).filter((_, m) => m.name == methodName && isExtensionMethod(m)).toList
     }
 
     def isProductLike(sym: Symbol): Boolean = {
-      // just assume true - we can always fail if there is no copy
       sym.methodMember("copy").nonEmpty || findExtensionMethod(sym, "copy").nonEmpty
     }
 
@@ -323,8 +349,8 @@ object QuicklensMacros {
         }
       } else if isProduct(objSymbol) || isProductLike(objSymbol) then {
         val argsMap: Map[String, Term] = fields.map { (field, trees) =>
-          val fieldMethod = symbolAccessorByNameOrError(objSymbol, field.name)
-          val resTerm: Term = trees.foldLeft[Term](Select(obj, fieldMethod)) { (term, tree) =>
+          val fieldMethod = symbolAccessorByNameOrError(obj, field.name)
+          val resTerm: Term = trees.foldLeft[Term](fieldMethod) { (term, tree) =>
             mapToCopy(owner, mod, term, tree)
           }
           val namedArg = NamedArg(field.name, resTerm)
