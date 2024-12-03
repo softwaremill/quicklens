@@ -133,6 +133,14 @@ object QuicklensMacros {
         /** Method call with one type parameter and using clause */
         case a @ Apply(TypeApply(Apply(TypeApply(Ident(s), _), idents), typeTrees), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath(_, focus)) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
+        case Apply(obj, Seq(deep)) => // this is an extension method, which is called e.g. as x(_$1)
+          obj match
+            case Ident(ident) =>
+              toPath(deep, focus) :+ PathSymbol.Field(ident)
+            case Select(term, member) =>
+              toPath(deep, focus) :+ PathSymbol.Field(member)
+            case other =>
+              report.errorAndAbort(unsupportedShapeInfo(focus.asTerm))
         /** Field access */
         case Apply(deep, idents) =>
           toPath(deep, focus) ++ idents.flatMap(toPath(_, focus))
@@ -166,34 +174,111 @@ object QuicklensMacros {
           Symbol.noSymbol
       }
 
-    def symbolAccessorByNameOrError(sym: Symbol, name: String): Symbol = {
-      val mem = sym.fieldMember(name)
-      if mem != Symbol.noSymbol then mem
-      else methodSymbolByNameOrError(sym, name)
+    def symbolAccessorByNameOrError(obj: Term, name: String): Term = {
+      val objTpe = obj.tpe.widenAll
+      val objSymbol = objTpe.matchingTypeSymbol
+      val mem = objSymbol.fieldMember(name)
+      if (mem != Symbol.noSymbol)
+        Select(obj, mem)
+      else
+        //Select(obj, mem)
+        objSymbol.methodMember(name) match
+          case List(m) =>
+            Select(obj, m)
+          case Nil =>
+            findExtensionMethod(objSymbol, name) match {
+              case List((owner, extension)) =>
+                Apply(Select(owner, extension), List(obj))
+              case syms =>
+                reportMethodError(objSymbol, name, syms.map(_._2))
+            }
+          case lst =>
+            report.errorAndAbort(multipleMatchingMethods(objSymbol.name, name, lst))
+    }
+
+    def reportMethodError(sym: Symbol, name: String, lst: List[Symbol]): Nothing = {
+      lst match
+        case Nil => report.errorAndAbort(noSuchMember(sym.name, name))
+        case lst => report.errorAndAbort(multipleMatchingMethods(sym.name, name, lst))
     }
 
     def methodSymbolByNameOrError(sym: Symbol, name: String): Symbol = {
       sym.methodMember(name) match
         case List(m) => m
-        case Nil     => report.errorAndAbort(noSuchMember(sym.name, name))
-        case lst     => report.errorAndAbort(multipleMatchingMethods(sym.name, name, lst))
+        case lst     => reportMethodError(sym, name, lst)
     }
 
-    def methodSymbolByNameAndArgsOrError(sym: Symbol, name: String, argsMap: Map[String, Term]): Symbol = {
+    def filterMethodsByNameAndArgs(allMethods: List[Symbol], argsMap: Map[String, Term]): Option[Symbol] = {
       val argNames = argsMap.keys
-      sym.methodMember(name).filter{ msym =>
+      allMethods.filter { msym =>
         // for copy, we filter out the methods that don't have the desired parameter names
         val paramNames = msym.paramSymss.flatten.filter(_.isTerm).map(_.name)
         argNames.forall(paramNames.contains)
       } match
-        case List(m) => m
-        case Nil     => report.errorAndAbort(noSuchMember(sym.name, name))
-        case lst @ (m :: _)     =>
+        case List(m) => Some(m)
+        case Nil => None
+        case lst@(m :: _) =>
           // if we have multiple matching copy methods, pick the synthetic one, if it exists, otherwise, pick any method
           val syntheticCopies = lst.filter(_.flags.is(Flags.Synthetic))
           syntheticCopies match
-            case List(mSynth) => mSynth
-            case _ => m
+            case List(mSynth) => Some(mSynth)
+            case _ => Some(m)
+    }
+
+    def methodSymbolByNameAndArgs(sym: Symbol, name: String, argsMap: Map[String, Term]): Option[Symbol] = {
+      val memberMethods = sym.methodMember(name)
+      filterMethodsByNameAndArgs(memberMethods, argsMap)
+    }
+
+    /**
+      * @param argsMap normal methods receive one parameter list, extensions methods two, the first one contains the value
+      *                on which the extension is called
+      * */
+    def callMethod(obj: Term, copy: Symbol, argsMap: List[Map[String, Term]]) = {
+      val objTpe = obj.tpe.widenAll
+      val objSymbol = objTpe.matchingTypeSymbol
+
+      val typeParams = objTpe match {
+        case AppliedType(_, typeParams) => Some(typeParams)
+        case _ => None
+      }
+      val copyTree: DefDef = copy.tree.asInstanceOf[DefDef]
+      val copyParams: List[(String, Option[Term])] = copyTree.termParamss.zip(argsMap)
+        .map((params, args) => params.params.map(_.name).map(name => name -> args.get(name)))
+        .flatten.toList
+
+      val args = copyParams.zipWithIndex.map { case ((n, v), _i) =>
+        val i = _i + 1
+        def defaultMethod =
+          val methodSymbol = methodSymbolByNameOrError(objSymbol, copy.name + "$default$" + i.toString)
+          // default values in extensions are obtained by calling a method receiving the extension parameter
+          val defaultMethodArgs = argsMap.dropRight(1).headOption.toList.flatMap(_.values)
+          //println(s"defaultMethodArgs ${obj.show} ${methodSymbol.name} $defaultMethodArgs")
+          if defaultMethodArgs.nonEmpty then
+            Apply(Select(obj, methodSymbol), defaultMethodArgs)
+          else
+            // note: this is not always correct, -Xcheck-macros shows errors here
+            // sometimes we should call a method with empry parameter list instead
+            obj.select(methodSymbol)
+
+        // for extension methods, might need sth more like this: (or probably some weird implicit conversion)
+        // val defaultGetter = obj.select(symbolMethodByNameOrError(objSymbol, n))
+        n -> v.getOrElse(defaultMethod)
+      }.toMap
+
+      val argLists = copyTree.termParamss.take(argsMap.size).map(list => list.params.map(p => args(p.name)))
+
+      if copyTree.termParamss.drop(argLists.size).exists(_.params.exists(!_.symbol.flags.is(Flags.Implicit))) then
+        report.errorAndAbort(
+          s"Implementation limitation: Only the first parameter list of the modified case classes can be non-implicit. ${copyTree.termParamss.drop(1)}"
+        )
+
+      val applyOn = typeParams match {
+        // if the object's type is parametrised, we need to call .copy with the same type parameters
+        case Some(typeParams) => TypeApply(Select(obj, copy), typeParams.map(Inferred(_)))
+        case _ => Select(obj, copy)
+      }
+      argLists.foldLeft(applyOn)((applied, list) => Apply(applied, list))
     }
 
     def termMethodByNameUnsafe(term: Term, name: String): Symbol = {
@@ -210,8 +295,18 @@ object QuicklensMacros {
       (sym.flags.is(Flags.Sealed) && (sym.flags.is(Flags.Trait) || sym.flags.is(Flags.Abstract)))
     }
 
+    def findExtensionMethod(using Quotes)(sym: Symbol, methodName: String): List[(Term, Symbol)] = {
+      // TODO: can we check parameter types somehow?
+      def isExtensionMethod(sym: Symbol): Boolean = sym.isDefDef && sym.paramSymss.headOption.exists(_.sizeIs == 1)
+
+      // TODO: try to search in symbol parent object as well
+      val symbols = Seq(sym.companionModule).filter(_ != Symbol.noSymbol)
+
+      symbols.flatMap(s => s.declaredMethods.map(Ref(s) -> _)).filter((_, m) => m.name == methodName && isExtensionMethod(m)).toList
+    }
+
     def isProductLike(sym: Symbol): Boolean = {
-      sym.methodMember("copy").size >= 1
+      sym.methodMember("copy").nonEmpty || findExtensionMethod(sym, "copy").nonEmpty
     }
 
     def caseClassCopy(
@@ -248,50 +343,33 @@ object QuicklensMacros {
         }
 
         val elseThrow = '{ throw new IllegalStateException() }.asTerm
+
         ifThens.foldRight(elseThrow) { case ((ifCond, ifThen), ifElse) =>
           If(ifCond, ifThen, ifElse)
         }
       } else if isProduct(objSymbol) || isProductLike(objSymbol) then {
         val argsMap: Map[String, Term] = fields.map { (field, trees) =>
-          val fieldMethod = symbolAccessorByNameOrError(objSymbol, field.name)
-          val resTerm: Term = trees.foldLeft[Term](Select(obj, fieldMethod)) { (term, tree) =>
+          val fieldMethod = symbolAccessorByNameOrError(obj, field.name)
+          val resTerm: Term = trees.foldLeft[Term](fieldMethod) { (term, tree) =>
             mapToCopy(owner, mod, term, tree)
           }
           val namedArg = NamedArg(field.name, resTerm)
           field.name -> namedArg
         }.toMap
-        val copy = methodSymbolByNameAndArgsOrError(objSymbol, "copy", argsMap)
-
-        val typeParams = objTpe match {
-          case AppliedType(_, typeParams) => Some(typeParams)
-          case _                          => None
-        }
-        val copyTree: DefDef = copy.tree.asInstanceOf[DefDef]
-        val copyParamNames: List[String] = copyTree.termParamss.headOption.map(_.params).toList.flatten.map(_.name)
-
-        val args = copyParamNames.zipWithIndex.map { (n, _i) =>
-          val i = _i + 1
-          val defaultMethod = obj.select(methodSymbolByNameOrError(objSymbol, "copy$default$" + i.toString))
-          // for extension methods, might need sth more like this: (or probably some weird implicit conversion)
-          // val defaultGetter = obj.select(symbolMethodByNameOrError(objSymbol, n))
-          argsMap.getOrElse(
-            n,
-            defaultMethod
-          )
-        }.toList
-
-        if copyTree.termParamss.drop(1).exists(_.params.exists(!_.symbol.flags.is(Flags.Implicit))) then
-          report.errorAndAbort(
-            s"Implementation limitation: Only the first parameter list of the modified case classes can be non-implicit."
-          )
-
-        typeParams match {
-          // if the object's type is parametrised, we need to call .copy with the same type parameters
-          case Some(typeParams) => Apply(TypeApply(Select(obj, copy), typeParams.map(Inferred(_))), args)
-          case _                => Apply(Select(obj, copy), args)
-        }
+        methodSymbolByNameAndArgs(objSymbol, "copy", argsMap) match
+          case Some(copy) =>
+            callMethod(obj, copy, List(argsMap))
+          case None =>
+            val objCompanion = objSymbol.companionModule
+            methodSymbolByNameAndArgs(objCompanion, "copy", argsMap) match
+              case Some(copy) =>
+                // now try to call the extension as a method, assume the object is its first parameter
+                val extensionParameter = copy.paramSymss.headOption.map(_.headOption).flatten
+                val argsWithObj = List(extensionParameter.map(name => name.name -> obj).toMap, argsMap)
+                callMethod(Ref(objCompanion), copy, argsWithObj)
+              case None => report.errorAndAbort(noSuchMember(objSymbol.name, "copy"))
       } else
-        report.errorAndAbort(s"Unsupported source object: must be a case class or sealed trait, but got: $objSymbol of type ${objTpe.show} (${obj.show})")
+        report.errorAndAbort(s"Unsupported source object: must be a case class, sealed trait or class with copy method, but got: $objSymbol of type ${objTpe.show} (${obj.show})")
     }
 
     def applyFunctionDelegate(
