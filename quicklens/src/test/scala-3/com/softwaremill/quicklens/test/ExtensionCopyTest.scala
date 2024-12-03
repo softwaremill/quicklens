@@ -5,17 +5,17 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 object ExtensionCopyTest {
-  case class V(x: Double, y: Double)
+  case class V(x: Double, y: Double, z: Double)
 
   opaque type Vec = V
 
   object Vec {
-    def apply(x: Double, y: Double): Vec = V(x, y)
+    def apply(x: Double, y: Double): Vec = V(x, y, 0)
 
     extension (v: Vec) {
       def x: Double = v.x
       def y: Double = v.y
-      def copy(x: Double = v.x, y: Double = v.y): Vec = V(x, y)
+      def copy(x: Double = v.x, y: Double = v.y): Vec = V(x, y, 0)
     }
   }
 }
@@ -55,11 +55,12 @@ class ExtensionCopyTest extends AnyFlatSpec with Matchers {
     }
 
     val a = VecCompanion(1, 2)
-    val b = a.modify(_.x).using(_ + 1)
-    println(b)
+    val b = a.modify(_.x).using(_ + 10)
+    assert(b.x == 11)
   }
+
   it should "modify a class with extension methods in companion" in {
-    case class V(x: Double, y: Double)
+    case class V(xm: Double, ym: Double)
 
     class VecClass(val v: V)
 
@@ -67,23 +68,22 @@ class ExtensionCopyTest extends AnyFlatSpec with Matchers {
       def apply(x: Double, y: Double): VecClass = new VecClass(V(x, y))
 
       extension (v: VecClass) {
-        def x: Double = v.v.x
-        def y: Double = v.v.y
+        def x: Double = v.v.xm
+        def y: Double = v.v.ym
         def copy(x: Double = v.x, y: Double = v.y): VecClass = new VecClass(V(x, y))
       }
     }
 
     val a = VecClass(1, 2)
-    val b = a.modify(_.x).using(_ + 1)
-    println(b)
+    val b = a.modify(_.x).using(_ + 10)
+    assert(b.x == 11)
   }
-  /*
+
   it should "modify an opaque type with extension methods" in {
     import ExtensionCopyTest.*
 
     val a = Vec(1, 2)
-    val b = a.modify(_.x).using(_ + 1)
-    println(b)
+    val b = a.modify(_.x).using(_ + 10)
+    assert(b.x == 11)
   }
-  */
 }

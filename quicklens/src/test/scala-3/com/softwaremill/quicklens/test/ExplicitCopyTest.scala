@@ -1,4 +1,5 @@
 package com.softwaremill.quicklens
+package test
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -90,5 +91,4 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
   //   val f = Frozen("A", 0)
   //   f.modify(_.state).setTo('B')
   // }
-
 }

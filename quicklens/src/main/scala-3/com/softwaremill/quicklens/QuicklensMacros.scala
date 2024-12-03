@@ -177,21 +177,20 @@ object QuicklensMacros {
     def symbolAccessorByNameOrError(obj: Term, name: String): Term = {
       val objTpe = obj.tpe.widenAll
       val objSymbol = objTpe.matchingTypeSymbol
-      val mem = objSymbol.fieldMember(name)
+      // opaque types could find members of underlying types - do not ask them (see https://github.com/scala/scala3/issues/22143)
+      val mem = if !objSymbol.flags.is(Flags.Deferred) then objSymbol.fieldMember(name) else Symbol.noSymbol
       if (mem != Symbol.noSymbol)
         Select(obj, mem)
       else
-        //Select(obj, mem)
         objSymbol.methodMember(name) match
           case List(m) =>
             Select(obj, m)
           case Nil =>
-            findExtensionMethod(objSymbol, name) match {
+            findExtensionMethod(objSymbol, name) match
               case List((owner, extension)) =>
                 Apply(Select(owner, extension), List(obj))
               case syms =>
                 reportMethodError(objSymbol, name, syms.map(_._2))
-            }
           case lst =>
             report.errorAndAbort(multipleMatchingMethods(objSymbol.name, name, lst))
     }
@@ -226,8 +225,10 @@ object QuicklensMacros {
     }
 
     def methodSymbolByNameAndArgs(sym: Symbol, name: String, argsMap: Map[String, Term]): Option[Symbol] = {
-      val memberMethods = sym.methodMember(name)
-      filterMethodsByNameAndArgs(memberMethods, argsMap)
+      if !sym.flags.is(Flags.Deferred) then
+        val memberMethods = sym.methodMember(name)
+        filterMethodsByNameAndArgs(memberMethods, argsMap)
+      else None
     }
 
     /**
@@ -253,7 +254,6 @@ object QuicklensMacros {
           val methodSymbol = methodSymbolByNameOrError(objSymbol, copy.name + "$default$" + i.toString)
           // default values in extensions are obtained by calling a method receiving the extension parameter
           val defaultMethodArgs = argsMap.dropRight(1).headOption.toList.flatMap(_.values)
-          //println(s"defaultMethodArgs ${obj.show} ${methodSymbol.name} $defaultMethodArgs")
           if defaultMethodArgs.nonEmpty then
             Apply(Select(obj, methodSymbol), defaultMethodArgs)
           else
@@ -295,12 +295,20 @@ object QuicklensMacros {
       (sym.flags.is(Flags.Sealed) && (sym.flags.is(Flags.Trait) || sym.flags.is(Flags.Abstract)))
     }
 
+    def findCompanionLikeObject(objSymbol: Symbol): Option[Symbol] = {
+      def optSymbol(objSymbol: Symbol) = Option.when(!objSymbol.isNoSymbol)(objSymbol)
+      optSymbol(objSymbol.companionModule).orElse {
+        // for opaque types, the companion type is not found by objSymbol.companionModule
+        // try to find an object by name in the owner scope
+        optSymbol(objSymbol.owner.fieldMember(objSymbol.name)).filter(_.flags.is(Flags.Module))
+      }
+    }
     def findExtensionMethod(using Quotes)(sym: Symbol, methodName: String): List[(Term, Symbol)] = {
       // TODO: can we check parameter types somehow?
       def isExtensionMethod(sym: Symbol): Boolean = sym.isDefDef && sym.paramSymss.headOption.exists(_.sizeIs == 1)
 
-      // TODO: try to search in symbol parent object as well
-      val symbols = Seq(sym.companionModule).filter(_ != Symbol.noSymbol)
+      // TODO: try to search in symbol parent scope as well, as extension methods could be located there as well
+      val symbols = findCompanionLikeObject(sym).filter(_ != Symbol.noSymbol).toList
 
       symbols.flatMap(s => s.declaredMethods.map(Ref(s) -> _)).filter((_, m) => m.name == methodName && isExtensionMethod(m)).toList
     }
@@ -360,13 +368,13 @@ object QuicklensMacros {
           case Some(copy) =>
             callMethod(obj, copy, List(argsMap))
           case None =>
-            val objCompanion = objSymbol.companionModule
-            methodSymbolByNameAndArgs(objCompanion, "copy", argsMap) match
+            val objCompanion = findCompanionLikeObject(objSymbol)
+            objCompanion.flatMap(methodSymbolByNameAndArgs(_, "copy", argsMap)) match
               case Some(copy) =>
                 // now try to call the extension as a method, assume the object is its first parameter
                 val extensionParameter = copy.paramSymss.headOption.map(_.headOption).flatten
                 val argsWithObj = List(extensionParameter.map(name => name.name -> obj).toMap, argsMap)
-                callMethod(Ref(objCompanion), copy, argsWithObj)
+                callMethod(Ref(objCompanion.get), copy, argsWithObj)
               case None => report.errorAndAbort(noSuchMember(objSymbol.name, "copy"))
       } else
         report.errorAndAbort(s"Unsupported source object: must be a case class, sealed trait or class with copy method, but got: $objSymbol of type ${objTpe.show} (${obj.show})")
@@ -429,6 +437,7 @@ object QuicklensMacros {
     def mapToCopy(owner: Symbol, mod: Expr[A => A], objTerm: Term, pathTree: PathTree): Term = pathTree match {
       case PathTree.Empty =>
         val apply = termMethodByNameUnsafe(mod.asTerm, "apply")
+        // TODO: calling extension may be necessary here
         Apply(Select(mod.asTerm, apply), List(objTerm))
       case PathTree.Node(children) =>
         accumulateToCopy(owner, mod, objTerm, children)
