@@ -56,7 +56,7 @@ class ExtensionCopyTest extends AnyFlatSpec with Matchers {
 
     val a = VecCompanion(1, 2)
     val b = a.modify(_.x).using(_ + 10)
-    assert(b.x == 11)
+    b.x shouldEqual 11
   }
 
   it should "modify a class with extension methods in companion" in {
@@ -76,7 +76,7 @@ class ExtensionCopyTest extends AnyFlatSpec with Matchers {
 
     val a = VecClass(1, 2)
     val b = a.modify(_.x).using(_ + 10)
-    assert(b.x == 11)
+    b.x shouldEqual 11
   }
 
   it should "modify an opaque type with extension methods" in {
@@ -84,6 +84,6 @@ class ExtensionCopyTest extends AnyFlatSpec with Matchers {
 
     val a = Vec(1, 2)
     val b = a.modify(_.x).using(_ + 10)
-    assert(b.x == 11)
+    b.x shouldEqual 11
   }
 }

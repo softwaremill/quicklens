@@ -34,7 +34,8 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
       def paths(paths: Paths): Docs = copy(paths = paths)
     }
     val docs = Docs()
-    docs.modify(_.paths.pathItems).using(m => m + ("a" -> PathItem()))
+    val r = docs.modify(_.paths.pathItems).using(m => m + ("a" -> PathItem()))
+    r.paths.pathItems should contain ("a" -> PathItem())
   }
 
   it should "modify a case class with an additional explicit copy" in {
@@ -43,7 +44,8 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     }
 
     val f = Frozen("A", 0)
-    f.modify(_.state).setTo("B")
+    val r = f.modify(_.state).setTo("B")
+    r.state shouldEqual "B"
   }
 
   it should "modify a case class with an ambiguous additional explicit copy" in {
@@ -52,7 +54,8 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     }
 
     val f = Frozen("A", 0)
-    f.modify(_.state).setTo("B")
+    val r = f.modify(_.state).setTo("B")
+    r.state shouldEqual "B"
   }
 
   it should "modify a class with two explicit copy methods" in {
@@ -62,7 +65,8 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     }
 
     val f = new Frozen("A", 0)
-    f.modify(_.state).setTo("B")
+    val r = f.modify(_.state).setTo("B")
+    r.state shouldEqual "B"
   }
 
   it should "modify a case class with an ambiguous additional explicit copy and pick the synthetic one first" in {
