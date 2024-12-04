@@ -113,10 +113,12 @@ object QuicklensMacros {
 
     enum PathSymbol:
       case Field(name: String)
+      case Extension(term: Term, name: String)
       case FunctionDelegate(name: String, givn: Term, typeTree: TypeTree, args: List[Term])
 
       def equiv(other: Any): Boolean = (this, other) match
         case (Field(name1), Field(name2)) => name1 == name2
+        case (Extension(term1, name1), Extension(term2, name2)) => term1 == term2 && name1 == name2
         case (FunctionDelegate(name1, _, typeTree1, args1), FunctionDelegate(name2, _, typeTree2, args2)) =>
           name1 == name2 && typeTree1.tpe == typeTree2.tpe && args1 == args2
         case _ => false
@@ -141,7 +143,7 @@ object QuicklensMacros {
             case Ident(ident) =>
               toPath(deep, focus) :+ PathSymbol.Field(ident)
             case Select(term, member) =>
-              toPath(deep, focus) :+ PathSymbol.Field(member)
+              toPath(deep, focus) :+ PathSymbol.Extension(term, member)
             case other =>
               report.errorAndAbort(unsupportedShapeInfo(focus.asTerm))
         /** Field access */
@@ -165,16 +167,22 @@ object QuicklensMacros {
       def widenAll: TypeRepr =
         tpe.widen.dealias.poorMansLUB
 
-      def matchingTypeSymbol: Symbol = tpe.widenAll match {
-        case AndType(l, r) =>
-          val lSym = l.matchingTypeSymbol
-          if l.matchingTypeSymbol != Symbol.noSymbol then lSym else r.matchingTypeSymbol
-        case tpe if isProduct(tpe.typeSymbol) || isSum(tpe.typeSymbol) =>
-          tpe.typeSymbol
-        case tpe if isProductLike(tpe.typeSymbol) =>
-          tpe.typeSymbol
-        case _ =>
-          Symbol.noSymbol
+      def matchingTypeSymbol: Symbol = {
+        def recurse(tpe: TypeRepr): Symbol = {
+          tpe.widenAll match {
+            case AndType(l, r) =>
+              val lSym = recurse(l)
+              if lSym != Symbol.noSymbol then lSym else recurse(r)
+            case tpe if isProduct(tpe.typeSymbol) || isSum(tpe.typeSymbol) =>
+              tpe.typeSymbol
+            case tpe if isProductLike(tpe.typeSymbol) =>
+              tpe.typeSymbol
+            case _ =>
+              Symbol.noSymbol
+          }
+        }
+        val rSym = recurse(tpe)
+        if rSym != Symbol.noSymbol then rSym else tpe.typeSymbol // if everything else fails, try the original type, maybe it will have all we need
       }
 
     def symbolAccessorByNameOrError(obj: Term, name: String): Term = {
@@ -188,14 +196,8 @@ object QuicklensMacros {
         objSymbol.methodMember(name) match
           case List(m) =>
             Select(obj, m)
-          case Nil =>
-            findExtensionMethod(objSymbol, name) match
-              case List((owner, extension)) =>
-                Apply(Select(owner, extension), List(obj))
-              case syms =>
-                reportMethodError(objSymbol, name, syms.map(_._2))
           case lst =>
-            report.errorAndAbort(multipleMatchingMethods(objSymbol.name, name, lst))
+            reportMethodError(objSymbol, name, lst)
     }
 
     def reportMethodError(sym: Symbol, name: String, lst: List[Symbol]): Nothing = {
@@ -325,7 +327,7 @@ object QuicklensMacros {
         owner: Symbol,
         mod: Expr[A => A],
         obj: Term,
-        fields: Seq[(PathSymbol.Field, Seq[PathTree])]
+        fields: Seq[(PathSymbol.Field | PathSymbol.Extension, Seq[PathTree])]
     ): Term = {
       val objTpe = obj.tpe.widenAll
       val objSymbol = objTpe.matchingTypeSymbol
@@ -361,12 +363,18 @@ object QuicklensMacros {
         }
       } else if isProduct(objSymbol) || isProductLike(objSymbol) then {
         val argsMap: Map[String, Term] = fields.map { (field, trees) =>
-          val fieldMethod = symbolAccessorByNameOrError(obj, field.name)
+          val (fieldMethod, name) = field match {
+            case PathSymbol.Field(name) =>
+              symbolAccessorByNameOrError (obj, name) -> name
+            case PathSymbol.Extension(term, name) =>
+              val extensionMethod = symbolAccessorByNameOrError (term, name)
+              Apply(extensionMethod, List(obj)) -> name
+          }
           val resTerm: Term = trees.foldLeft[Term](fieldMethod) { (term, tree) =>
             mapToCopy(owner, mod, term, tree)
           }
-          val namedArg = NamedArg(field.name, resTerm)
-          field.name -> namedArg
+          val namedArg = NamedArg(name, resTerm)
+          name -> namedArg
         }.toMap
         methodSymbolByNameAndArgs(objSymbol, "copy", argsMap) match
           case Right(copy) =>
@@ -421,9 +429,9 @@ object QuicklensMacros {
       case Nil =>
         objTerm
 
-      case (_: PathSymbol.Field, _) :: _ =>
-        val (fs, funs) = pathSymbols.span(_._1.isInstanceOf[PathSymbol.Field])
-        val fields = fs.collect { case (p: PathSymbol.Field, trees) => p -> trees }
+      case (_: (PathSymbol.Field | PathSymbol.Extension), _) :: _ =>
+        val (fs, funs) = pathSymbols.span(s => s._1.isInstanceOf[PathSymbol.Field] | s._1.isInstanceOf[PathSymbol.Extension])
+        val fields = fs.collect { case (p: (PathSymbol.Field | PathSymbol.Extension), trees) => p -> trees }
         val withCopiedFields: Term = caseClassCopy(owner, mod, objTerm, fields)
         accumulateToCopy(owner, mod, withCopiedFields, funs)
 
