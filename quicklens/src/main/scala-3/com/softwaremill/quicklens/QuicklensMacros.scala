@@ -58,6 +58,9 @@ object QuicklensMacros {
     def noSuchMember(tpeStr: String, name: String) =
       s"$tpeStr has no member named $name"
 
+    def noSuitableMember(tpeStr: String, name: String, argNames: Iterable[String]) =
+      s"$tpeStr has no member $name with parameters ${argNames.mkString("(", ", ", ")")}"
+
     def multipleMatchingMethods(tpeStr: String, name: String, syms: Seq[Symbol]) =
       val symsStr = syms.map(s => s" - $s: ${s.termRef.dealias.widen.show}").mkString("\n", "\n", "")
       s"Multiple methods named $name found in $tpeStr: $symsStr"
@@ -224,11 +227,12 @@ object QuicklensMacros {
             case _ => Some(m)
     }
 
-    def methodSymbolByNameAndArgs(sym: Symbol, name: String, argsMap: Map[String, Term]): Option[Symbol] = {
+    def methodSymbolByNameAndArgs(sym: Symbol, name: String, argsMap: Map[String, Term]): Either[String, Symbol] = {
       if !sym.flags.is(Flags.Deferred) then
         val memberMethods = sym.methodMember(name)
         filterMethodsByNameAndArgs(memberMethods, argsMap)
-      else None
+          .toRight(if memberMethods.isEmpty then noSuchMember(sym.name, name) else noSuitableMember(sym.name, name, argsMap.keys))
+      else Left(s"Deferred type ${sym.name}")
     }
 
     /**
@@ -365,17 +369,17 @@ object QuicklensMacros {
           field.name -> namedArg
         }.toMap
         methodSymbolByNameAndArgs(objSymbol, "copy", argsMap) match
-          case Some(copy) =>
+          case Right(copy) =>
             callMethod(obj, copy, List(argsMap))
-          case None =>
+          case Left(error) =>
             val objCompanion = findCompanionLikeObject(objSymbol)
-            objCompanion.flatMap(methodSymbolByNameAndArgs(_, "copy", argsMap)) match
+            objCompanion.flatMap(methodSymbolByNameAndArgs(_, "copy", argsMap).toOption) match
               case Some(copy) =>
                 // now try to call the extension as a method, assume the object is its first parameter
                 val extensionParameter = copy.paramSymss.headOption.map(_.headOption).flatten
                 val argsWithObj = List(extensionParameter.map(name => name.name -> obj).toMap, argsMap)
                 callMethod(Ref(objCompanion.get), copy, argsWithObj)
-              case None => report.errorAndAbort(noSuchMember(objSymbol.name, "copy"))
+              case None => report.errorAndAbort(error)
       } else
         report.errorAndAbort(s"Unsupported source object: must be a case class, sealed trait or class with copy method, but got: $objSymbol of type ${objTpe.show} (${obj.show})")
     }
