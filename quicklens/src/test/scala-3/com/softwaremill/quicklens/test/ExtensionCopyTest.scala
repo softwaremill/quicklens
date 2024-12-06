@@ -21,8 +21,9 @@ object ExtensionCopyTest {
 }
 
 class ExtensionCopyTest extends AnyFlatSpec with Matchers {
-  /*
   it should "modify a simple class with an extension copy method" in {
+    // this test does compile at the moment, because we search extensions in companions only
+    /*
     class VecSimple(xp: Double, yp: Double) {
       val xMember = xp
       val yMember = yp
@@ -36,10 +37,10 @@ class ExtensionCopyTest extends AnyFlatSpec with Matchers {
       def copy(x: Double = v.xMember, y: Double = v.yMember): VecSimple = new VecSimple(x, y)
     }
     val a = VecSimple(1, 2)
-    val b = a.modify(_.xMember).using(_ + 1)
-    println(b)
+    val b = a.modify(_.xMember).using(_ + 10)
+    b.xMember shouldEqual 11
+    */
   }
-  */
 
   it should "modify a simple class with an extension copy method in companion" in {
     class VecCompanion(xp: Double, yp: Double) {
