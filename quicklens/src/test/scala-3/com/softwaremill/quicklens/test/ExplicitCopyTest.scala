@@ -1,4 +1,5 @@
 package com.softwaremill.quicklens
+package test
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -33,7 +34,8 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
       def paths(paths: Paths): Docs = copy(paths = paths)
     }
     val docs = Docs()
-    docs.modify(_.paths.pathItems).using(m => m + ("a" -> PathItem()))
+    val r = docs.modify(_.paths.pathItems).using(m => m + ("a" -> PathItem()))
+    r.paths.pathItems should contain ("a" -> PathItem())
   }
 
   it should "modify a case class with an additional explicit copy" in {
@@ -42,7 +44,8 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     }
 
     val f = Frozen("A", 0)
-    f.modify(_.state).setTo("B")
+    val r = f.modify(_.state).setTo("B")
+    r.state shouldEqual "B"
   }
 
   it should "modify a case class with an ambiguous additional explicit copy" in {
@@ -51,7 +54,8 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     }
 
     val f = Frozen("A", 0)
-    f.modify(_.state).setTo("B")
+    val r = f.modify(_.state).setTo("B")
+    r.state shouldEqual "B"
   }
 
   it should "modify a class with two explicit copy methods" in {
@@ -61,7 +65,8 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     }
 
     val f = new Frozen("A", 0)
-    f.modify(_.state).setTo("B")
+    val r = f.modify(_.state).setTo("B")
+    r.state shouldEqual "B"
   }
 
   it should "modify a case class with an ambiguous additional explicit copy and pick the synthetic one first" in {
@@ -77,6 +82,19 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
     accessed shouldEqual 0
   }
 
+  it should "not compile when modifying a field which is not present as a copy parameter" in {
+    """
+    case class Content(x: String)
+
+    class A(val c: Content) {
+      def copy(x: String = c.x): A = new A(Content(x))
+    }
+
+    val a = new A(Content("A"))
+    val am = a.modify(_.c).setTo(Content("B"))
+    """ shouldNot compile
+  }
+
   // TODO: Would be nice to be able to handle this case. Based on the types, it
   // is obvious, that the explicit copy should be picked, but I'm not sure if we
   // can get that information
@@ -90,5 +108,4 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
   //   val f = Frozen("A", 0)
   //   f.modify(_.state).setTo('B')
   // }
-
 }
