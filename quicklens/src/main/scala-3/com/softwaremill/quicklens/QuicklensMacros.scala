@@ -427,7 +427,6 @@ object QuicklensMacros {
     def mapToCopy(owner: Symbol, mod: Expr[A => A], objTerm: Term, pathTree: PathTree): Term = pathTree match {
       case PathTree.Empty =>
         val apply = termMethodByNameUnsafe(mod.asTerm, "apply")
-        // TODO: calling extension may be necessary here
         Apply(Select(mod.asTerm, apply), List(objTerm))
       case PathTree.Node(children) =>
         accumulateToCopy(owner, mod, objTerm, children)
