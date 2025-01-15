@@ -118,7 +118,7 @@ object QuicklensMacros {
       def name: String
 
       def equiv(other: Any): Boolean = (this, other) match
-        case (Field(name1), Field(name2)) => name1 == name2
+        case (Field(name1), Field(name2))                       => name1 == name2
         case (Extension(term1, name1), Extension(term2, name2)) => term1 == term2 && name1 == name2
         case (FunctionDelegate(name1, _, typeTree1, args1), FunctionDelegate(name2, _, typeTree2, args2)) =>
           name1 == name2 && typeTree1.tpe == typeTree2.tpe && args1 == args2
@@ -127,24 +127,31 @@ object QuicklensMacros {
 
     def toPath(tree: Tree, focus: Expr[S => A]): Seq[PathSymbol] = {
       tree match {
+
         /** Field access */
         case Select(deep, ident) =>
           toPath(deep, focus) :+ PathSymbol.Field(ident)
+
         /** Method call with arguments and using clause */
         case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath(_, focus)) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, args)
+
         /** Method call with no arguments and using clause */
         case Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath(_, focus)) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
+
         /** Method call with one type parameter and using clause */
         case a @ Apply(TypeApply(Apply(TypeApply(Ident(s), _), idents), typeTrees), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath(_, focus)) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
+
         /** Extension method, which is called e.g. as x(_$1) */
-        case Apply(obj@Select(term, member), Seq(deep)) if obj.symbol.flags.is(Flags.ExtensionMethod) =>
+        case Apply(obj @ Select(term, member), Seq(deep)) if obj.symbol.flags.is(Flags.ExtensionMethod) =>
           toPath(deep, focus) :+ PathSymbol.Extension(term, member)
+
         /** Field access */
         case Apply(deep, idents) =>
           toPath(deep, focus) ++ idents.flatMap(toPath(_, focus))
+
         /** Wild card from path */
         case i: Ident if i.name.startsWith("_") =>
           Seq.empty
@@ -182,8 +189,7 @@ object QuicklensMacros {
       val objSymbol = objTpe.matchingTypeSymbol
       // opaque types can find members of underlying types - ignore them (see https://github.com/scala/scala3/issues/22143)
       val fieldMemberSym = objSymbol.fieldMember(name)
-      if !objSymbol.flags.is(Flags.Deferred) && fieldMemberSym.exists then
-        Select(obj, fieldMemberSym)
+      if !objSymbol.flags.is(Flags.Deferred) && fieldMemberSym.exists then Select(obj, fieldMemberSym)
       else
         objSymbol.methodMember(name) match
           case List(m) =>
@@ -192,10 +198,15 @@ object QuicklensMacros {
             report.errorAndAbort(reportMethodError(objSymbol, name, lst))
     }
 
-    def reportMethodError(sym: Symbol, name: String, lst: List[Symbol], maybeArgNames: Option[Iterable[String]] = None): String = {
+    def reportMethodError(
+        sym: Symbol,
+        name: String,
+        lst: List[Symbol],
+        maybeArgNames: Option[Iterable[String]] = None
+    ): String = {
       (lst, maybeArgNames) match
-        case (Nil, _) => noSuchMember(sym.name, name)
-        case (lst, None) => multipleMatchingMethods(sym.name, name, lst)
+        case (Nil, _)              => noSuchMember(sym.name, name)
+        case (lst, None)           => multipleMatchingMethods(sym.name, name, lst)
         case (lst, Some(argNames)) => noSuitableMember(sym.name, name, argNames)
     }
 
@@ -212,14 +223,14 @@ object QuicklensMacros {
         val paramNames = msym.paramSymss.flatten.filter(_.isTerm).map(_.name)
         argNames.forall(paramNames.contains)
       } match
-        case List(m) => Some(m)
-        case Nil => None
-        case lst@(m :: _) =>
+        case List(m)        => Some(m)
+        case Nil            => None
+        case lst @ (m :: _) =>
           // if we have multiple matching copy methods, pick the synthetic one, if it exists, otherwise, pick any method
           val syntheticCopies = lst.filter(_.flags.is(Flags.Synthetic))
           syntheticCopies match
             case List(mSynth) => Some(mSynth)
-            case _ => Some(m)
+            case _            => Some(m)
     }
 
     def methodSymbolByNameAndArgs(sym: Symbol, name: String, argsMap: Map[String, Term]): Either[String, Symbol] = {
@@ -230,20 +241,25 @@ object QuicklensMacros {
       else Left(s"Deferred type ${sym.name}")
     }
 
-    /**
-      * @param argsMap normal methods receive one parameter list, extensions methods two, the first one contains the value
-      *                on which the extension is called
-      * */
+    /** @param argsMap
+      *   normal methods receive one parameter list, extensions methods two, the first one contains the value on which
+      *   the extension is called
+      */
     def callMethod(obj: Term, copy: Symbol, argsMap: List[Map[String, Term]]) = {
-      require(argsMap.size == 1 || argsMap.size == 2, s"argsMap.size should be either 1 or 2, got: ${argsMap.size} ($argsMap)")
+      require(
+        argsMap.size == 1 || argsMap.size == 2,
+        s"argsMap.size should be either 1 or 2, got: ${argsMap.size} ($argsMap)"
+      )
       val objTpe = obj.tpe.widenAll
       val objSymbol = objTpe.matchingTypeSymbol
 
       val typeParams = objTpe.typeArgs
       val copyTree: DefDef = copy.tree.asInstanceOf[DefDef]
-      val copyParams: List[(String, Option[Term])] = copyTree.termParamss.zip(argsMap)
+      val copyParams: List[(String, Option[Term])] = copyTree.termParamss
+        .zip(argsMap)
         .map((params, args) => params.params.map(_.name).map(name => name -> args.get(name)))
-        .flatten.toList
+        .flatten
+        .toList
 
       val args = copyParams.zipWithIndex.map { case ((n, v), _i) =>
         val i = _i + 1
@@ -255,7 +271,8 @@ object QuicklensMacros {
         n -> v.getOrElse(defaultMethod)
       }.toMap
 
-      val argLists: List[List[Term]] = copyTree.termParamss.take(argsMap.size).map(list => list.params.map(p => args(p.name)))
+      val argLists: List[List[Term]] =
+        copyTree.termParamss.take(argsMap.size).map(list => list.params.map(p => args(p.name)))
 
       if copyTree.termParamss.drop(argLists.size).exists(_.params.exists(!_.symbol.flags.is(Flags.Implicit))) then
         report.errorAndAbort(
@@ -281,8 +298,7 @@ object QuicklensMacros {
     }
 
     def findCompanionLikeObject(objSymbol: Symbol): Symbol = {
-      if objSymbol.companionModule.exists then
-        objSymbol.companionModule
+      if objSymbol.companionModule.exists then objSymbol.companionModule
       else
         val namedFromOwnerScope = objSymbol.owner.fieldMember(objSymbol.name)
         if namedFromOwnerScope.flags.is(Flags.Module) then namedFromOwnerScope
@@ -293,8 +309,7 @@ object QuicklensMacros {
       val companionSymbol = findCompanionLikeObject(sym)
       if companionSymbol.exists then
         companionSymbol.methodMember(methodName).filter(s => s.name == methodName && s.flags.is(Flags.ExtensionMethod))
-      else
-        Nil
+      else Nil
     }
 
     def isProductLike(sym: Symbol): Boolean = {
@@ -367,7 +382,9 @@ object QuicklensMacros {
                 callMethod(Ref(objCompanion), copy, argsWithObj)
               case None => report.errorAndAbort(error)
       } else
-        report.errorAndAbort(s"Unsupported source object: must be a case class, sealed trait or class with copy method, but got: $objSymbol of type ${objTpe.show} (${obj.show})")
+        report.errorAndAbort(
+          s"Unsupported source object: must be a case class, sealed trait or class with copy method, but got: $objSymbol of type ${objTpe.show} (${obj.show})"
+        )
     }
 
     def applyFunctionDelegate(
@@ -408,7 +425,8 @@ object QuicklensMacros {
         objTerm
 
       case (_: (PathSymbol.Field | PathSymbol.Extension), _) :: _ =>
-        val (fs, funs) = pathSymbols.span((ps, _) => ps.isInstanceOf[PathSymbol.Field] || ps.isInstanceOf[PathSymbol.Extension])
+        val (fs, funs) =
+          pathSymbols.span((ps, _) => ps.isInstanceOf[PathSymbol.Field] || ps.isInstanceOf[PathSymbol.Extension])
         val fields = fs.collect { case (p: (PathSymbol.Field | PathSymbol.Extension), trees) => p -> trees }
         val withCopiedFields: Term = caseClassCopy(owner, mod, objTerm, fields)
         accumulateToCopy(owner, mod, withCopiedFields, funs)
@@ -433,9 +451,11 @@ object QuicklensMacros {
     }
 
     def extractFocus(tree: Tree): Tree = tree match {
+
       /** Single inlined path */
       case Inlined(_, _, p) =>
         extractFocus(p)
+
       /** One of paths from modifyAll */
       case Block(List(DefDef(_, _, _, Some(p))), _) =>
         p
