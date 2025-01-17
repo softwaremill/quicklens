@@ -154,8 +154,8 @@ package object quicklens {
       def map[A](fa: M[A], f: A => A): M[A] = {
         val mapped = fa.view.mapValues(f)
         (fa match {
-          case sfa: SortedMap[K, A]@unchecked => sfa.sortedMapFactory.from(mapped)(using sfa.ordering)
-          case _                    => mapped.to(fa.mapFactory)
+          case sfa: SortedMap[K, A] @unchecked => sfa.sortedMapFactory.from(mapped)(using sfa.ordering)
+          case _                               => mapped.to(fa.mapFactory)
         }).asInstanceOf[M[A]]
       }
     }
