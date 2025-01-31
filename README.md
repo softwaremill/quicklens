@@ -275,7 +275,7 @@ Read [the blog](http://www.warski.org/blog/2015/02/quicklens-modify-deeply-neste
 Available in Maven Central:
 
 ````scala
-val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.9.11"
+val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.9.12"
 ````
 
 Available for Scala 2.11, 2.12, 2.13, [3](https://dotty.epfl.ch), [Scala.js](http://www.scala-js.org) and [Scala Native](http://www.scala-native.org)!
