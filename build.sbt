@@ -78,7 +78,4 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
   )
   .nativePlatform(
     scalaVersions = List(scala212, scala213, scala3),
-    settings = Seq(
-      nativeLinkStubs := true
-    )
   )
