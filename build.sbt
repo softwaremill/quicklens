@@ -14,7 +14,11 @@ excludeLintKeys in Global ++= Set(ideSkipProject)
 val commonSettings = commonSmlBuildSettings ++ ossPublishSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
   updateDocs := UpdateVersionInDocs(sLog.value, organization.value, version.value, List(file("README.md"))),
-  scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked"), // useful for debugging macros: "-Ycheck:all", "-Xcheck-macros"
+  scalacOptions ++= Seq(
+    "-deprecation",
+    "-feature",
+    "-unchecked"
+  ), // useful for debugging macros: "-Ycheck:all", "-Xcheck-macros"
   ideSkipProject := (scalaVersion.value != scalaIdeaVersion)
 )
 
@@ -67,7 +71,7 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     libraryDependencies ++= compilerLibrary(scalaVersion.value),
     versionSpecificScalaSources,
     libraryDependencies ++= Seq("flatspec", "shouldmatchers").map(m =>
-      "org.scalatest" %%% s"scalatest-$m" % "3.2.18" % Test
+      "org.scalatest" %%% s"scalatest-$m" % "3.2.19" % Test
     )
   )
   .jvmPlatform(
@@ -77,5 +81,5 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     scalaVersions = List(scala212, scala213, scala3)
   )
   .nativePlatform(
-    scalaVersions = List(scala212, scala213, scala3),
+    scalaVersions = List(scala212, scala213, scala3)
   )
