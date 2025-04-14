@@ -178,6 +178,10 @@ object QuicklensMacros {
     extension (term: Term)
       def appliedToIfNeeded(args: List[Term]): Term =
         if args.isEmpty then term else term.appliedToArgs(args)
+      def appliedToTypesIfNeeded(args: List[TypeRepr]): Term =
+        if term.symbol.paramSymss.headOption.toList.flatten.filter(_.isType).nonEmpty then
+          term.appliedToTypes(args)
+        else term
 
     def symbolAccessorByNameOrError(obj: Term, name: String): Term = {
       val objTpe = obj.tpe.widenAll
@@ -253,7 +257,7 @@ object QuicklensMacros {
           val methodSymbol = methodSymbolByNameOrError(objSymbol, copy.name + "$default$" + i.toString)
           // default values in extension methods take the extension receiver as the first parameter
           val defaultMethodArgs = argsMap.dropRight(1).flatMap(_.values)
-          obj.select(methodSymbol).appliedToIfNeeded(defaultMethodArgs)
+          obj.select(methodSymbol).appliedToTypesIfNeeded(typeParams).appliedToIfNeeded(defaultMethodArgs)
         n -> v.getOrElse(defaultMethod)
       }.toMap
 
