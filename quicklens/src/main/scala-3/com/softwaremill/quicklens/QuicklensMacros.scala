@@ -157,6 +157,8 @@ object QuicklensMacros {
       def poorMansLUB: TypeRepr = tpe match {
         case AndType(l, r) if l <:< r => l
         case AndType(l, r) if r <:< l => r
+        case AndType(_, _) =>
+          report.errorAndAbort(s"Implementation limitation: Cannot modify an & type with unrelated types.")
         case _                        => tpe
       }
 
