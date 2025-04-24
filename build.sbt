@@ -14,7 +14,14 @@ excludeLintKeys in Global ++= Set(ideSkipProject)
 val commonSettings = commonSmlBuildSettings ++ ossPublishSettings ++ Seq(
   organization := "com.softwaremill.quicklens",
   updateDocs := UpdateVersionInDocs(sLog.value, organization.value, version.value, List(file("README.md"))),
-  scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-Xcheck-macros"),
+  scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked"),
+  scalacOptions ++= {
+    val sv = (Compile / scalaVersion).value
+    CrossVersion.partialVersion(sv) match {
+      case Some((3, _))  => List("-Xcheck-macros")
+      case _             => Nil
+    }
+  },
   ideSkipProject := (scalaVersion.value != scalaIdeaVersion)
 )
 
