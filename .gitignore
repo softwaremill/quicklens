@@ -13,3 +13,5 @@ project/**/metals.sbt
 .vscode/
 .bsp
 .scala-build
+.cursor
+.sbt

@@ -5,6 +5,9 @@ on:
   push:
     branches: ['**']
     tags: [v*]
+permissions:
+  contents: write        # release-drafter, auto-merge requirement
+  pull-requests: write   # labeler, auto-merge requirement    
 jobs:
   ci:
     # run on external PRs, but not on internal PRs since those will be run by push to branch
