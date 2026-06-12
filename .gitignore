@@ -15,3 +15,5 @@ project/**/metals.sbt
 .scala-build
 .cursor
 .sbt
+.devcontainer
+.orca
