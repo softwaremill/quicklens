@@ -17,3 +17,4 @@ project/**/metals.sbt
 .sbt
 .devcontainer
 .orca
+
