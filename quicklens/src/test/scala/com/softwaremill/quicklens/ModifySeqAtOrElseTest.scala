@@ -20,4 +20,18 @@ class ModifySeqAtOrElseTest extends AnyFlatSpec with Matchers {
       List(Item("a"), Item("b"), Item("DEFAULT"))
     )
   }
+
+  it should "append the modified default on an empty sequence" in {
+    val items = List.empty[Item]
+    modify(items)(_.atOrElse(0, Item("default")).name).using(_.toUpperCase) should be(
+      List(Item("DEFAULT"))
+    )
+  }
+
+  it should "append the modified default for a negative index" in {
+    val items = List(Item("a"), Item("b"))
+    modify(items)(_.atOrElse(-1, Item("default")).name).using(_.toUpperCase) should be(
+      List(Item("a"), Item("b"), Item("DEFAULT"))
+    )
+  }
 }

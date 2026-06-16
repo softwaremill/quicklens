@@ -154,8 +154,8 @@ package object quicklens {
       def map[A](fa: M[A], f: A => A): M[A] = {
         val mapped = fa.view.mapValues(f)
         (fa match {
-          case sfa: SortedMap[K, A]@unchecked => sfa.sortedMapFactory.from(mapped)(using sfa.ordering)
-          case _                    => mapped.to(fa.mapFactory)
+          case sfa: SortedMap[K, A] @unchecked => sfa.sortedMapFactory.from(mapped)(using sfa.ordering)
+          case _                               => mapped.to(fa.mapFactory)
         }).asInstanceOf[M[A]]
       }
     }
@@ -172,7 +172,8 @@ package object quicklens {
       def at[A](fa: S[A], f: A => A, idx: Int): S[A] =
         fa.updated(idx, f(fa(idx))).asInstanceOf[S[A]]
       def atOrElse[A](fa: S[A], f: A => A, idx: Int, default: => A): S[A] =
-        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default)))).asInstanceOf[S[A]]
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))).asInstanceOf[S[A]]
+        else (fa :+ f(default)).asInstanceOf[S[A]]
       def index[A](fa: S[A], f: A => A, idx: Int): S[A] =
         if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))).asInstanceOf[S[A]] else fa
     }
@@ -183,7 +184,8 @@ package object quicklens {
         fa.updated(idx, f(fa(idx)))
       def atOrElse[A](fa: Array[A], f: A => A, idx: Int, default: => A): Array[A] =
         implicit val aClassTag: ClassTag[A] = fa.elemTag.asInstanceOf[ClassTag[A]]
-        fa.updated(idx, f(fa.applyOrElse(idx, Function.const(default))))
+        if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx)))
+        else fa :+ f(default)
       def index[A](fa: Array[A], f: A => A, idx: Int): Array[A] =
         implicit val aClassTag: ClassTag[A] = fa.elemTag.asInstanceOf[ClassTag[A]]
         if fa.isDefinedAt(idx) then fa.updated(idx, f(fa(idx))) else fa

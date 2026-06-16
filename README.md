@@ -159,9 +159,8 @@ For Options, `.atOrElse` takes no arguments and acts similarly.
 person.modify(_.addresses.at(2).street.atOrElse(Street("main street")).name).using(_.toUpperCase)
  ````
  
- `.atOrElse` is currently not available for sequences because quicklens might need to insert many
- elements in the list in order to ensure that one is available at a particular position, and it's not
- clear that providing one default for all keys is the right behavior. 
+ For sequences (and arrays), if an element exists at the given index, `.atOrElse` behaves the same as
+ `.at`. If the index is out of bounds, the modified default is appended once at the end of the sequence.
 
 **Modify Either fields using `.eachLeft` and `.eachRight`:**
 
