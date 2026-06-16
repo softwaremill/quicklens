@@ -26,16 +26,16 @@ class ExplicitCopyTest extends AnyFlatSpec with Matchers {
   it should "modify a class that has a method with the same name as a field" in {
     final case class PathItem()
     final case class Paths(
-      pathItems: Map[String, PathItem] = Map.empty
+        pathItems: Map[String, PathItem] = Map.empty
     )
     final case class Docs(
-      paths: Paths = Paths()
+        paths: Paths = Paths()
     ) {
       def paths(paths: Paths): Docs = copy(paths = paths)
     }
     val docs = Docs()
     val r = docs.modify(_.paths.pathItems).using(m => m + ("a" -> PathItem()))
-    r.paths.pathItems should contain ("a" -> PathItem())
+    r.paths.pathItems should contain("a" -> PathItem())
   }
 
   it should "modify a case class with an additional explicit copy" in {

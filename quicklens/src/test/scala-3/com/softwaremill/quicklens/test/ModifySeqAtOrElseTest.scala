@@ -15,17 +15,24 @@ class ModifySeqAtOrElseTest extends AnyFlatSpec with Matchers {
     )
   }
 
-  it should "not throw for an index outside the Seq, using the default" in {
-    val items = List(Item("a"), Item("b"))
-    noException should be thrownBy {
-      modify(items)(_.atOrElse(5, Item("default")).name).using(_.toUpperCase)
-    }
+  it should "modify an existing element of an Array using atOrElse" in {
+    val items = Array(Item("a"), Item("b"))
+    modify(items)(_.atOrElse(1, Item("default")).name).using(_.toUpperCase).toList should be(
+      List(Item("a"), Item("B"))
+    )
   }
 
-  it should "not throw for an index outside an Array, using the default" in {
+  it should "append the modified default for an index outside the Seq" in {
+    val items = List(Item("a"), Item("b"))
+    modify(items)(_.atOrElse(5, Item("default")).name).using(_.toUpperCase) should be(
+      List(Item("a"), Item("b"), Item("DEFAULT"))
+    )
+  }
+
+  it should "append the modified default for an index outside an Array" in {
     val items = Array(Item("a"), Item("b"))
-    noException should be thrownBy {
-      modify(items)(_.atOrElse(5, Item("default")).name).using(_.toUpperCase)
-    }
+    modify(items)(_.atOrElse(5, Item("default")).name).using(_.toUpperCase).toList should be(
+      List(Item("a"), Item("b"), Item("DEFAULT"))
+    )
   }
 }
