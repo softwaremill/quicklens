@@ -274,7 +274,7 @@ package object quicklens extends LowPriorityImplicits {
       override def at(fa: F[T], idx: Int)(f: T => T): F[T] =
         fa.updated(idx, f(fa(idx)))
       override def atOrElse(fa: F[T], idx: Int, default: => T)(f: T => T): F[T] =
-        if (idx >= 0 && idx < fa.size) fa.updated(idx, f(fa(idx)))
+        if (fa.isDefinedAt(idx)) fa.updated(idx, f(fa(idx)))
         else fa :+ f(default)
       override def index(fa: F[T], idx: Int)(f: T => T): F[T] =
         if (idx < fa.size) fa.updated(idx, f(fa(idx))) else fa
