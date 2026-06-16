@@ -39,7 +39,7 @@ class ExtensionCopyTest extends AnyFlatSpec with Matchers {
     val a = VecSimple(1, 2)
     val b = a.modify(_.xMember).using(_ + 10)
     b.xMember shouldEqual 11
-    */
+     */
   }
 
   it should "modify a simple class with an extension copy method in companion" in {

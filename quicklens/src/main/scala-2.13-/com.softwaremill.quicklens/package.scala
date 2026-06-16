@@ -213,12 +213,16 @@ package object quicklens extends LowPriorityImplicits {
     @compileTimeOnly(canOnlyBeUsedInsideModify("at"))
     def at(idx: Int): T = sys.error("")
 
+    @compileTimeOnly(canOnlyBeUsedInsideModify("atOrElse"))
+    def atOrElse(idx: Int, default: => T): T = sys.error("")
+
     @compileTimeOnly(canOnlyBeUsedInsideModify("index"))
     def index(idx: Int): T = sys.error("")
   }
 
   trait QuicklensAtFunctor[F[_], T] {
     def at(fa: F[T], idx: Int)(f: T => T): F[T]
+    def atOrElse(fa: F[T], idx: Int, default: => T)(f: T => T): F[T]
     def index(fa: F[T], idx: Int)(f: T => T): F[T]
   }
 
@@ -269,6 +273,9 @@ package object quicklens extends LowPriorityImplicits {
     new QuicklensAtFunctor[F, T] {
       override def at(fa: F[T], idx: Int)(f: T => T): F[T] =
         fa.updated(idx, f(fa(idx)))
+      override def atOrElse(fa: F[T], idx: Int, default: => T)(f: T => T): F[T] =
+        if (fa.isDefinedAt(idx)) fa.updated(idx, f(fa(idx)))
+        else fa :+ f(default)
       override def index(fa: F[T], idx: Int)(f: T => T): F[T] =
         if (idx < fa.size) fa.updated(idx, f(fa(idx))) else fa
     }
