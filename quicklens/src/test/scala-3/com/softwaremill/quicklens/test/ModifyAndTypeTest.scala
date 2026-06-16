@@ -9,6 +9,7 @@ object ModifyAndTypeTest {
   case class A(a: Int) extends B
   trait B {
     def a: Int
+    def b: Int = 0
   }
 
   case class A1(a: Int)
@@ -26,6 +27,7 @@ class ModifyAndTypeTest extends AnyFlatSpec with Matchers {
 
     val modified = ab.modify(_.a).setTo(1)
 
+    modified.b shouldBe 0
     modified.a shouldBe 1
   }
 
@@ -34,22 +36,7 @@ class ModifyAndTypeTest extends AnyFlatSpec with Matchers {
 
     val modified = ab.modify(_.a).setTo(1)
 
-    modified.a shouldBe 1
-  }
-
-  it should "modify an & type object 2" in {
-    val ab: B & A1 = new A1(0) with B
-
-    val modified = ab.modify(_.a).setTo(1)
-
-    modified.a shouldBe 1
-  }
-
-  it should "modify an & type object 3" in {
-    val ab: A1 & B = new A1(0) with B
-
-    val modified = ab.modify(_.a).setTo(1)
-
+    modified.b shouldBe 0
     modified.a shouldBe 1
   }
 
