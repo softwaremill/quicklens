@@ -22,8 +22,7 @@ scalacOptions ++= Seq(
 ideSkipProject := (scalaVersion.value != scalaIdeaVersion)
 
 lazy val root =
-  project
-    .in(file("."))
+  rootProject
     .settings(
       publishArtifact := false,
       moduleName := "quicklens-root",
