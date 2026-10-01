@@ -28,7 +28,7 @@ jobs:
     - name: Compile
       run: sbt -v compile
     - name: Test
-      run: sbt -v "testOnly *"
+      run: sbt -v testFull
 
   publish:
     name: Publish release
