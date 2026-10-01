@@ -31,7 +31,7 @@ lazy val root =
         UpdateVersionInDocs(sLog.value, organization.value, version.value, List(file("README.md")))
       )
     )
-    .aggregate(quicklens.projectRefs*)
+    .autoAggregate
 
 val versionSpecificScalaSources = {
   Compile / unmanagedSourceDirectories := {
