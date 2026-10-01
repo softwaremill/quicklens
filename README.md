@@ -277,7 +277,7 @@ Available in Maven Central:
 val quicklens = "com.softwaremill.quicklens" %% "quicklens" % "1.9.15"
 ````
 
-Available for Scala 2.11, 2.12, 2.13, [3](https://dotty.epfl.ch), [Scala.js](http://www.scala-js.org) and [Scala Native](http://www.scala-native.org)!
+Available for Scala 2.12, 2.13, [3](https://dotty.epfl.ch), [Scala.js](http://www.scala-js.org) and [Scala Native](http://www.scala-native.org)!
 
 ## Commercial Support
 

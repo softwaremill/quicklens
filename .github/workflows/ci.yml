@@ -22,12 +22,13 @@ jobs:
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
-        java-version: '11'
+        java-version: '17'
         cache: 'sbt'
+    - uses: sbt/setup-sbt@ce95da69b39609ea153bad087708da5f37366897 # v1, specifically v1.5.10
     - name: Compile
       run: sbt -v compile
     - name: Test
-      run: sbt -v test
+      run: sbt -v testFull
 
   publish:
     name: Publish release
@@ -44,10 +45,11 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '17'
           cache: 'sbt'
+      - uses: sbt/setup-sbt@ce95da69b39609ea153bad087708da5f37366897 # v1, specifically v1.5.10
       - name: Compile
-        run: sbt compile
+        run: sbt "compile ; shutdown"
       - name: Publish artifacts
         run: sbt ci-release
         env:

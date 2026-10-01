@@ -2,33 +2,36 @@ import com.softwaremill.SbtSoftwareMillCommon.commonSmlBuildSettings
 import com.softwaremill.Publish.{updateDocs, ossPublishSettings}
 import com.softwaremill.UpdateVersionInDocs
 
-val scala211 = "2.11.12"
 val scala212 = "2.12.21"
 val scala213 = "2.13.18"
 val scala3 = "3.3.8"
 
 val scalaIdeaVersion = scala3 // the version for which to import sources into intellij
 
-excludeLintKeys in Global ++= Set(ideSkipProject)
+Global / excludeLintKeys ++= Set(ideSkipProject)
 
-val commonSettings = commonSmlBuildSettings ++ ossPublishSettings ++ Seq(
-  organization := "com.softwaremill.quicklens",
-  updateDocs := UpdateVersionInDocs(sLog.value, organization.value, version.value, List(file("README.md"))),
-  scalacOptions ++= Seq(
-    "-deprecation",
-    "-feature",
-    "-unchecked"
-  ), // useful for debugging macros: "-Ycheck:all", "-Xcheck-macros"
-  ideSkipProject := (scalaVersion.value != scalaIdeaVersion)
-)
+commonSmlBuildSettings
+ossPublishSettings
+
+organization := "com.softwaremill.quicklens"
+scalacOptions ++= Seq(
+  "-deprecation",
+  "-feature",
+  "-unchecked"
+) // useful for debugging macros: "-Ycheck:all", "-Xcheck-macros"
+ideSkipProject := (scalaVersion.value != scalaIdeaVersion)
 
 lazy val root =
-  project
-    .in(file("."))
-    .settings(commonSettings)
-    .settings(publishArtifact := false)
-    .settings(scalaVersion := scalaIdeaVersion)
-    .aggregate(quicklens.projectRefs: _*)
+  rootProject
+    .settings(
+      publishArtifact := false,
+      moduleName := "quicklens-root",
+      scalaVersion := scalaIdeaVersion,
+      updateDocs := Def.uncached(
+        UpdateVersionInDocs(sLog.value, organization.value, version.value, List(file("README.md")))
+      )
+    )
+    .autoAggregate
 
 val versionSpecificScalaSources = {
   Compile / unmanagedSourceDirectories := {
@@ -63,7 +66,6 @@ def reflectLibrary(scalaVersion: String) = {
 }
 
 lazy val quicklens = (projectMatrix in file("quicklens"))
-  .settings(commonSettings)
   .settings(
     name := "quicklens",
     libraryDependencies ++= reflectLibrary(scalaVersion.value),
@@ -71,11 +73,14 @@ lazy val quicklens = (projectMatrix in file("quicklens"))
     libraryDependencies ++= compilerLibrary(scalaVersion.value),
     versionSpecificScalaSources,
     libraryDependencies ++= Seq("flatspec", "shouldmatchers").map(m =>
-      "org.scalatest" %%% s"scalatest-$m" % "3.2.18" % Test
+      "org.scalatest" %% s"scalatest-$m" % "3.2.18" % Test
     )
   )
   .jvmPlatform(
-    scalaVersions = List(scala211, scala212, scala213, scala3)
+    scalaVersions = List(scala212, scala213, scala3),
+    settings = Seq(
+      scalacOptions ++= (if (ScalaArtifacts.isScala3(scalaVersion.value)) Seq.empty else Seq("-release", "8"))
+    )
   )
   .jsPlatform(
     scalaVersions = List(scala212, scala213, scala3)
