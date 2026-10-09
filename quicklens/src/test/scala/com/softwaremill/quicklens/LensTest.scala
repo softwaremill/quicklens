@@ -15,6 +15,6 @@ class LensTest extends AnyFlatSpec with Matchers {
     val lens_a1_a3 = modify(_: A1)(_.a2.a3)
     val lens_a3_name = modify(_: A3)(_.a4.a5.name)
 
-    (lens_a1_a3 andThenModify lens_a3_name)(a1).using(duplicate) should be(a1dup)
+    lens_a1_a3.andThenModify(lens_a3_name)(a1).using(duplicate) should be(a1dup)
   }
 }

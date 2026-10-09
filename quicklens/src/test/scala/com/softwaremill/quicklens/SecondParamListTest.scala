@@ -12,9 +12,8 @@ class SecondParamListTest extends AnyFlatSpec with Matchers {
 
     val d: Double = 1.0
 
-    val state1 = State(true)(d)
-
     implicit val dd: Double = d
+    val state1 = State(true)
     val state2 = state1.modify(_.inside).setTo(true)
 
     state1 should be(state2)

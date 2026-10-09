@@ -77,10 +77,10 @@ object QuicklensMacros {
           symbols.toPathTree
         case (PathTree.Node(children), (symbol :: Nil)) =>
           PathTree.Node {
-            if children.find(_._1 equiv symbol).isEmpty then children :+ (symbol -> Seq(PathTree.Empty))
+            if children.find(_._1.equiv(symbol)).isEmpty then children :+ (symbol -> Seq(PathTree.Empty))
             else
               children.map {
-                case (sym, trees) if sym equiv symbol =>
+                case (sym, trees) if sym.equiv(symbol) =>
                   sym -> (trees :+ PathTree.Empty)
                 case c => c
               }
@@ -89,10 +89,10 @@ object QuicklensMacros {
           this
         case (PathTree.Node(children), (symbol :: tail)) =>
           PathTree.Node {
-            if children.find(_._1 equiv symbol).isEmpty then children :+ (symbol -> Seq(tail.toPathTree))
+            if children.find(_._1.equiv(symbol)).isEmpty then children :+ (symbol -> Seq(tail.toPathTree))
             else
               children.map {
-                case (sym, trees) if sym equiv symbol =>
+                case (sym, trees) if sym.equiv(symbol) =>
                   sym -> (trees.init ++ {
                     trees.last match
                       case PathTree.Empty => Seq(PathTree.Empty, tail.toPathTree)
