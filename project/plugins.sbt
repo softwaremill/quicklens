@@ -5,6 +5,6 @@ addSbtPlugin("org.scala-js" % "sbt-scalajs" % scalaJSVersion)
 addSbtPlugin("org.scala-native" % "sbt-scala-native" % scalaNativeVersion)
 addSbtPlugin("org.jetbrains.scala" % "sbt-ide-settings" % "1.1.4")
 
-val sbtSoftwareMillVersion = "3.0.1"
+val sbtSoftwareMillVersion = "3.0.2"
 addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-common" % sbtSoftwareMillVersion)
 addSbtPlugin("com.softwaremill.sbt-softwaremill" % "sbt-softwaremill-publish" % sbtSoftwareMillVersion)
