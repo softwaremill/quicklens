@@ -127,24 +127,31 @@ object QuicklensMacros {
 
     def toPath(tree: Tree, focus: Expr[S => A]): Seq[PathSymbol] = {
       tree match {
+
         /** Field access */
         case Select(deep, ident) =>
           toPath(deep, focus) :+ PathSymbol.Field(ident)
+
         /** Method call with arguments and using clause */
         case Apply(Apply(Apply(TypeApply(Ident(s), typeTrees), idents), args), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath(_, focus)) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, args)
+
         /** Method call with no arguments and using clause */
         case Apply(Apply(TypeApply(Ident(s), typeTrees), idents), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath(_, focus)) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
+
         /** Method call with one type parameter and using clause */
         case a @ Apply(TypeApply(Apply(TypeApply(Ident(s), _), idents), typeTrees), List(givn)) if methodSupported(s) =>
           idents.flatMap(toPath(_, focus)) :+ PathSymbol.FunctionDelegate(s, givn, typeTrees.last, List.empty)
+
         /** Extension method, which is called e.g. as x(_$1) */
         case Apply(obj @ Select(term, member), Seq(deep)) if obj.symbol.flags.is(Flags.ExtensionMethod) =>
           toPath(deep, focus) :+ PathSymbol.Extension(term, member)
+
         /** Field access */
         case Apply(deep, idents) =>
           toPath(deep, focus) ++ idents.flatMap(toPath(_, focus))
+
         /** Wild card from path */
         case i: Ident if i.name.startsWith("_") =>
           Seq.empty
@@ -444,9 +451,11 @@ object QuicklensMacros {
     }
 
     def extractFocus(tree: Tree): Tree = tree match {
+
       /** Single inlined path */
       case Inlined(_, _, p) =>
         extractFocus(p)
+
       /** One of paths from modifyAll */
       case Block(List(DefDef(_, _, _, Some(p))), _) =>
         p
